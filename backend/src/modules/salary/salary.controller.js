@@ -38,6 +38,8 @@ exports.getSalaryById = async (req, res) => {
     }
 };
 
+const Expense = require('../expense/expense.model');
+
 // Create or update salary record
 exports.upsertSalary = async (req, res) => {
     try {
@@ -45,7 +47,6 @@ exports.upsertSalary = async (req, res) => {
             employeeId,
             year,
             month,
-            baseSalary,
             allowances,
             deductions,
             bonuses,
@@ -63,11 +64,26 @@ exports.upsertSalary = async (req, res) => {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
+        // Calculate Approved Expenses for the month
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59);
+
+        const expenses = await Expense.find({
+            employee: employeeId,
+            date: { $gte: startDate, $lte: endDate },
+            status: 'Approved'
+        });
+
+        const totalApprovedExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
         const filter = {
             employee: employeeId,
             'period.year': year,
             'period.month': month
         };
+
+        // Use employee's current monthlyPay as baseSalary if not provided
+        const baseSalary = employee.monthlyPay || 0;
 
         const update = {
             employee: employeeId,
@@ -76,6 +92,7 @@ exports.upsertSalary = async (req, res) => {
             allowances: allowances || {},
             deductions: deductions || {},
             bonuses: bonuses || {},
+            approvedExpenses: totalApprovedExpenses,
             workingDays: workingDays || {},
             paymentStatus: paymentStatus || 'pending',
             paymentDate,

@@ -1,0 +1,107 @@
+const Inventory = require('./inventory.model');
+const Product = require('./product.model');
+const Stockist = require('../stockist/stockist.model');
+
+// @desc    Get all products
+// @route   GET /api/v1/inventory/products
+// @access  Private
+exports.getProducts = async (req, res, next) => {
+    try {
+        const products = await Product.find();
+        res.status(200).json({ success: true, count: products.length, data: products });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Create new product
+// @route   POST /api/v1/inventory/products
+// @access  Private (Admin)
+exports.createProduct = async (req, res, next) => {
+    try {
+        const product = await Product.create(req.body);
+        res.status(201).json({ success: true, data: product });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get inventory (stock levels)
+// @route   GET /api/v1/inventory/stock
+// @access  Private
+exports.getInventory = async (req, res, next) => {
+    try {
+        let query = {};
+
+        // Filter by Stockist if provided
+        if (req.query.stockistId) {
+            query.stockist = req.query.stockistId;
+        }
+
+        // If user is HQ, maybe restrict to their coverage area? 
+        // For now, assuming standard access controls handled by route or simple filter.
+        // If user is stockist (not implemented yet), they should only see their own.
+
+        const inventory = await Inventory.find(query)
+            .populate('product', 'name code unitPrice')
+            .populate('stockist', 'name location');
+
+        res.status(200).json({ success: true, count: inventory.length, data: inventory });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Update stock (Inward/Outward)
+// @route   POST /api/v1/inventory/stock
+// @access  Private (Admin/HQ)
+exports.updateStock = async (req, res, next) => {
+    try {
+        const { stockistId, productId, stockIn, stockOut } = req.body;
+
+        if (!stockistId || !productId) {
+            return res.status(400).json({ success: false, error: 'Please provide Stockist and Product' });
+        }
+
+        let inv = await Inventory.findOne({ stockist: stockistId, product: productId });
+
+        const inQty = parseInt(stockIn) || 0;
+        const outQty = parseInt(stockOut) || 0;
+
+        if (!inv) {
+            // Create new inventory record if it doesn't exist
+            inv = await Inventory.create({
+                stockist: stockistId,
+                product: productId,
+                openingStock: 0,
+                stockIn: inQty,
+                stockOut: outQty,
+                closingStock: inQty - outQty
+            });
+        } else {
+            // Update existing record
+            // Logic: Cumulative update
+            inv.stockIn += inQty;
+            inv.stockOut += outQty;
+
+            // Recalculate closing stock
+            // Closing = Opening + Total In - Total Out
+            inv.closingStock = inv.openingStock + inv.stockIn - inv.stockOut;
+
+            inv.updatedAt = Date.now();
+            await inv.save();
+        }
+
+        // Ideally we should record a "Transaction" here for audit trail, 
+        // but for now keeping it simple as per current schema.
+
+        const populatedInv = await Inventory.findById(inv._id)
+            .populate('product', 'name code')
+            .populate('stockist', 'name');
+
+        // Notification logic removed as it's handled dynamically by notification.controller.js
+        res.status(200).json({ success: true, data: populatedInv });
+    } catch (err) {
+        next(err);
+    }
+};

@@ -10,9 +10,18 @@ import HQList from './modules/hq/HQList';
 import DoctorList from './modules/doctor/DoctorList';
 import Dashboard from './modules/dashboard/Dashboard';
 import ChemistList from './modules/chemist/ChemistList';
+import TargetList from './modules/target/TargetList';
 import Placeholder from './components/Placeholder';
+import ExpenseList from './modules/expense/ExpenseList';
 import Analytics from './modules/analytics/Analytics';
 import LeaveCalendar from './modules/leave/LeaveCalendar';
+import RoutingList from './modules/routing/RoutingList';
+import StockistList from './modules/stockist/StockistList';
+import ProductList from './modules/inventory/ProductList';
+import InventoryList from './modules/inventory/InventoryList';
+import SalaryList from './modules/salary/SalaryList';
+import DataImport from './modules/admin-tools/DataImport';
+import CallReportList from './modules/callReport/CallReportList';
 
 // Protect Routes Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: any, allowedRoles: string[] }) => {
@@ -53,12 +62,22 @@ const App: React.FC = () => {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="employees" element={<EmployeeList />} />
         <Route path="chemists" element={<ChemistList />} />
+        <Route path="targets" element={<TargetList />} />
         <Route path="hqs" element={<HQList />} />
+        <Route path="routing" element={<RoutingList />} />
         <Route path="doctors" element={<DoctorList />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="stockists" element={<StockistList />} />
         <Route path="leave" element={<LeaveCalendar />} />
-        <Route path="salary" element={<Placeholder title="Salary Management" />} />
-        <Route path="*" element={<Placeholder title="Admin Page" />} />
+        <Route path="inventory/products" element={<ProductList />} />
+        <Route path="inventory/stock" element={<InventoryList />} />
+        <Route path="inventory" element={<InventoryList />} />
+        <Route path="expenses" element={<ExpenseList />} />
+        <Route path="expenses" element={<ExpenseList />} />
+        <Route path="calls" element={<CallReportList />} />
+        <Route path="import" element={<DataImport />} />
+        <Route path="salary" element={<SalaryList />} />
+        <Route path="import" element={<DataImport />} />
       </Route>
 
       {/* HQ ROUTES */}

@@ -1,120 +1,187 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import EmpProfile from '../profile/EmpProfile';
-import LeaveCalendar from '../leave/LeaveCalendar';
-import Analytics from '../analytics/Analytics';
-import ReportCall from '../callReport/ReportCall';
-import TargetSection from '../target/TargetSection';
-import { TrendingUp, Users, Calendar, AlertCircle, LogOut } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
+import { analyticsAPI, type DashboardSummary } from '../../api/analytics.api';
+import DashboardCalendar from './DashboardCalendar';
+import { Users, TrendingUp, Network, MapPin } from 'lucide-react';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement
+} from 'chart.js';
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement
+);
 
 const Dashboard: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const [summary, setSummary] = useState<DashboardSummary | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadSummary();
+    }, []);
+
+    const loadSummary = async () => {
+        try {
+            const res = await analyticsAPI.getSummary();
+            setSummary(res);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Chart Data Preparation
+    const hqPerformanceData = {
+        labels: summary?.hqPerformance?.map(h => h.name) || [],
+        datasets: [
+            {
+                label: 'Avg Performance Score',
+                data: summary?.hqPerformance?.map(h => h.avgScore) || [],
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const hqDistributionData = {
+        labels: summary?.hqDistribution?.map(h => h.name) || [],
+        datasets: [
+            {
+                data: summary?.hqDistribution?.map(h => h.count) || [],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                    'rgba(255, 159, 64, 0.5)',
+                ],
+                borderWidth: 1,
+            },
+        ],
+    };
+
+    if (loading) return <div className="p-8">Loading dashboard...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Welcome back, {user?.name}. Here's your overview.
-                    </p>
-                </div>
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Executive Dashboard</h1>
+                <p className="text-slate-500 mt-2">
+                    High-level overview of network performance and field statistics.
+                </p>
             </div>
 
-            {/* Main Dashboard Grid - Following Working Plan Layout */}
-            <div className="grid grid-cols-12 gap-6">
-                {/* Left Sidebar - Col 1-2 */}
-                <div className="col-span-2 space-y-6">
-                    {/* EMP Profile */}
-                    <EmpProfile />
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="border-l-4 border-l-blue-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Field Force</CardTitle>
+                        <Users className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{summary?.counts?.employees || 0}</div>
+                        <p className="text-xs text-muted-foreground">Active Employees</p>
+                    </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-green-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Network Size</CardTitle>
+                        <Network className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{summary?.counts?.hqs || 0}</div>
+                        <p className="text-xs text-muted-foreground">Operational HQs</p>
+                    </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-purple-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Avg Performance</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{summary?.periodMetrics?.avgCompletion || 0}%</div>
+                        <p className="text-xs text-muted-foreground">Overall completion rate</p>
+                    </CardContent>
+                </Card>
+            </div>
 
-                    {/* Dashboard Mini Stats */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">Quick Stats</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                                    <span className="text-sm">Revenue</span>
-                                </div>
-                                <span className="font-bold text-sm">₹45K</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-green-600" />
-                                    <span className="text-sm">Active</span>
-                                </div>
-                                <span className="font-bold text-sm">2,350</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-4 w-4 text-purple-600" />
-                                    <span className="text-sm">Pending</span>
-                                </div>
-                                <span className="font-bold text-sm">12</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                                    <span className="text-sm">Issues</span>
-                                </div>
-                                <span className="font-bold text-sm">3</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+            {/* Middle Row: Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                {/* HQ Performance (Span 3) */}
+                <Card className="col-span-3">
+                    <CardHeader>
+                        <CardTitle>Headquarters Performance</CardTitle>
+                        <CardDescription>Average employee performance score by HQ</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] flex items-center justify-center">
+                            {summary?.hqPerformance?.length ? (
+                                <Bar
+                                    data={hqPerformanceData}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { legend: { display: false } }
+                                    }}
+                                />
+                            ) : (
+                                <p className="text-muted-foreground">No performance data available.</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
-                {/* Center Area - Col 3-9 */}
-                <div className="col-span-7 space-y-6">
-                    {/* Report Call Section */}
-                    <ReportCall />
+                {/* HQ Distribution (Span 2) */}
+                <Card className="col-span-2">
+                    <CardHeader>
+                        <CardTitle>Staff Distribution</CardTitle>
+                        <CardDescription>Employees per HQ</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] flex items-center justify-center">
+                            {summary?.hqDistribution?.length ? (
+                                <Doughnut
+                                    data={hqDistributionData}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { legend: { position: 'right' } }
+                                    }}
+                                />
+                            ) : (
+                                <p className="text-muted-foreground">No distribution data available.</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-                    {/* Target Section (Large) and Current Month Analytics */}
-                    <div className="grid grid-cols-1 gap-6">
-                        <TargetSection />
-                        <Analytics />
-                    </div>
-                </div>
-
-                {/* Right Sidebar - Col 10-12 */}
-                <div className="col-span-3 space-y-6">
-                    {/* Login/Logout */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">Account</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
-                                    {user?.name?.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{user?.name}</p>
-                                    <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-                                </div>
-                            </div>
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={logout}
-                            >
-                                <LogOut className="h-4 w-4 mr-2" />
-                                Logout
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Leave Calendar */}
-                    <LeaveCalendar />
-                </div>
+            {/* Bottom Row: Calendar */}
+            <div className="grid grid-cols-1">
+                <DashboardCalendar />
             </div>
         </div>
     );
 };
 
 export default Dashboard;
+

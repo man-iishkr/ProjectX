@@ -47,13 +47,30 @@ export interface Analytics {
 }
 
 export interface DashboardSummary {
-    totalEmployees: number;
-    totalVisits: number;
-    averageCompletion: number;
-    topPerformers: Array<{
-        employee: any;
-        completion: number;
+    counts: {
+        employees: number;
+        hqs: number;
+        stockists: number;
+    };
+    periodMetrics: {
         totalVisits: number;
+        avgCompletion: number;
+        reportingCount: number;
+    };
+    topPerformers: Array<{
+        id: string;
+        name: string;
+        visits: number;
+        score: number;
+    }>;
+    hqPerformance: Array<{
+        name: string;
+        avgScore: number;
+        avgVisits: number;
+    }>;
+    hqDistribution: Array<{
+        name: string;
+        count: number;
     }>;
 }
 

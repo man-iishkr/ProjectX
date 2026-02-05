@@ -10,9 +10,17 @@ const DoctorSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    route: {
+    routeFrom: {
         type: String,
-        required: [true, 'Please add a route']
+        required: [true, 'Please add route start']
+    },
+    routeTo: {
+        type: String,
+        required: [true, 'Please add route end']
+    },
+    date: {
+        type: Date,
+        default: Date.now
     },
     area: {
         type: String,

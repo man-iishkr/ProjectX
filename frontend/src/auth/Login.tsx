@@ -85,8 +85,8 @@ const Login: React.FC = () => {
                                     setError('');
                                 }}
                                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-all ${mode === 'employee'
-                                        ? 'bg-white text-blue-600 shadow-sm'
-                                        : 'text-slate-600 hover:text-slate-900'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
                                     }`}
                             >
                                 <User className="h-4 w-4" />
@@ -99,8 +99,8 @@ const Login: React.FC = () => {
                                     setError('');
                                 }}
                                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-all ${mode === 'admin'
-                                        ? 'bg-white text-blue-600 shadow-sm'
-                                        : 'text-slate-600 hover:text-slate-900'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
                                     }`}
                             >
                                 <Shield className="h-4 w-4" />
@@ -119,7 +119,7 @@ const Login: React.FC = () => {
 
                             <div className="space-y-2">
                                 <label htmlFor="username" className="text-sm font-medium text-slate-700">
-                                    {mode === 'admin' ? 'Admin Username' : 'Employee ID'}
+                                    {mode === 'admin' ? 'Admin / HQ Username' : 'Employee ID'}
                                 </label>
                                 <Input
                                     id="username"

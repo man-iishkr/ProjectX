@@ -77,7 +77,7 @@ exports.getExpenses = async (req, res, next) => {
 // @access  Private (Admin/HQ)
 exports.updateExpenseStatus = async (req, res, next) => {
     try {
-        const { status } = req.body; // 'Approved' or 'Rejected'
+        const { status, amount } = req.body; // 'Approved' or 'Rejected', and optional new amount
 
         let expense = await Expense.findById(req.params.id).populate('employee');
 
@@ -102,6 +102,9 @@ exports.updateExpenseStatus = async (req, res, next) => {
         expense.approvedBy = req.user.id;
         if (status === 'Approved') {
             expense.hqApproval = true;
+            if (amount) {
+                expense.amount = amount;
+            }
         }
 
         await expense.save();

@@ -198,36 +198,62 @@ exports.getDashboardSummary = async (req, res) => {
         const currentYear = year || new Date().getFullYear();
         const currentMonth = month || new Date().getMonth() + 1;
 
-        let query = {
+        // 1. Get Base Counts (Global or HQ filtered)
+        let employeeQuery = { role: 'employee' };
+        let hqQuery = {};
+        let stockistQuery = {}; // Stockist usually linked to HQ? Assuming global for now or refine later
+
+        if (hqId) {
+            employeeQuery.hq = hqId;
+            hqQuery._id = hqId; // If specific HQ selected, count is 1? Or maybe valid users in that HQ.
+            // stockistQuery.hq = hqId; // If stockist has HQ link
+        }
+
+        const totalEmployees = await User.countDocuments(employeeQuery);
+        const totalHQs = await require('../hq/hq.model').countDocuments(hqQuery); // Lazy require or move to top
+        const totalStockists = await require('../stockist/stockist.model').countDocuments(stockistQuery);
+
+        // 2. Get Analytics Data for Period
+        let analyticsQuery = {
             'period.year': parseInt(currentYear),
             'period.month': parseInt(currentMonth)
         };
+        if (hqId) analyticsQuery.hq = hqId;
 
-        if (hqId) query.hq = hqId;
+        const analytics = await Analytics.find(analyticsQuery).populate('employee', 'name');
 
-        const analytics = await Analytics.find(query);
+        // 3. Aggregate Performance Metrics
+        const totalVisits = analytics.reduce((sum, a) => sum + (a.visitFrequency?.totalVisits || 0), 0);
 
-        // Aggregate data
-        const summary = {
-            totalEmployees: analytics.length,
-            totalVisits: analytics.reduce((sum, a) => sum + a.visitFrequency.totalVisits, 0),
-            averageCompletion: analytics.length > 0
-                ? analytics.reduce((sum, a) => {
-                    const completion = parseFloat(a.completionPercentage) || 0;
-                    return sum + completion;
-                }, 0) / analytics.length
-                : 0,
-            topPerformers: analytics
-                .sort((a, b) => parseFloat(b.completionPercentage) - parseFloat(a.completionPercentage))
-                .slice(0, 5)
-                .map(a => ({
-                    employee: a.employee,
-                    completion: parseFloat(a.completionPercentage),
-                    totalVisits: a.visitFrequency.totalVisits
-                }))
-        };
+        // Calculate average completion across all reporting employees
+        const avgCompletion = analytics.length > 0
+            ? analytics.reduce((sum, a) => sum + (parseFloat(a.performance?.overallScore) || 0), 0) / analytics.length
+            : 0;
 
-        res.json(summary);
+        // Top Performers
+        const topPerformers = analytics
+            .sort((a, b) => (b.visitFrequency?.totalVisits || 0) - (a.visitFrequency?.totalVisits || 0))
+            .slice(0, 5)
+            .map(a => ({
+                id: a.employee?._id,
+                name: a.employee?.name || 'Unknown',
+                visits: a.visitFrequency?.totalVisits || 0,
+                score: a.performance?.overallScore || 0
+            }));
+
+        res.json({
+            counts: {
+                employees: totalEmployees,
+                hqs: totalHQs,
+                stockists: totalStockists
+            },
+            periodMetrics: {
+                totalVisits,
+                avgCompletion: parseFloat(avgCompletion.toFixed(1)),
+                reportingCount: analytics.length
+            },
+            topPerformers
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching summary', error: error.message });
     }

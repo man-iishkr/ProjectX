@@ -1,4 +1,5 @@
 const HQ = require('./hq.model');
+const User = require('../auth/auth.model');
 
 // @desc    Get all HQs
 // @route   GET /api/v1/hqs
@@ -23,10 +24,33 @@ exports.getHQs = async (req, res, next) => {
 exports.createHQ = async (req, res, next) => {
     try {
         console.log('Creating HQ with data:', req.body);
+        const { password, ...hqData } = req.body;
 
-        const hq = await HQ.create(req.body);
+        if (!password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide a password for the HQ login'
+            });
+        }
 
-        console.log('HQ created successfully:', hq._id);
+        const hq = await HQ.create(hqData);
+
+        // Create associated User for this HQ
+        try {
+            await User.create({
+                name: hq.name,
+                username: hq.name, // Username is same as HQ name
+                password: password,
+                role: 'hq',
+                hq: hq._id
+            });
+        } catch (userError) {
+            // Rollback: Delete the created HQ if user creation fails
+            await HQ.findByIdAndDelete(hq._id);
+            throw userError;
+        }
+
+        console.log('HQ and User created successfully:', hq._id);
 
         res.status(201).json({
             success: true,
@@ -52,6 +76,78 @@ exports.createHQ = async (req, res, next) => {
             });
         }
 
+        next(err);
+    }
+};
+
+// @desc    Get single HQ
+// @route   GET /api/v1/hqs/:id
+// @access  Private
+exports.getHQ = async (req, res, next) => {
+    try {
+        const hq = await HQ.findById(req.params.id);
+
+        if (!hq) {
+            return res.status(404).json({ success: false, error: 'HQ not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: hq
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Update HQ
+// @route   PUT /api/v1/hqs/:id
+// @access  Private (Admin)
+exports.updateHQ = async (req, res, next) => {
+    try {
+        let hq = await HQ.findById(req.params.id);
+
+        if (!hq) {
+            return res.status(404).json({ success: false, error: 'HQ not found' });
+        }
+
+        hq = await HQ.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+
+        res.status(200).json({
+            success: true,
+            data: hq
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Delete HQ
+// @route   DELETE /api/v1/hqs/:id
+// @access  Private (Admin)
+exports.deleteHQ = async (req, res, next) => {
+    try {
+        const hq = await HQ.findById(req.params.id);
+
+        if (!hq) {
+            return res.status(404).json({ success: false, error: 'HQ not found' });
+        }
+
+        // Also delete the associated User (HQ Login)
+        // Find user by HQ reference or name?
+        // In createHQ we did: hq: hq._id
+        await User.findOneAndDelete({ hq: hq._id });
+
+        await hq.deleteOne();
+
+        res.status(200).json({
+            success: true,
+            data: {}
+        });
+    } catch (err) {
         next(err);
     }
 };

@@ -40,6 +40,10 @@ const SalarySchema = new mongoose.Schema({
         festive: { type: Number, default: 0 },
         others: { type: Number, default: 0 }
     },
+    approvedExpenses: {
+        type: Number,
+        default: 0
+    },
     // Attendance related
     workingDays: {
         total: { type: Number, default: 0 },
@@ -117,7 +121,7 @@ SalarySchema.virtual('totalBonuses').get(function () {
 
 // Virtual for gross salary
 SalarySchema.virtual('grossSalary').get(function () {
-    return this.baseSalary + this.totalAllowances + this.totalBonuses;
+    return this.baseSalary + this.totalAllowances + this.totalBonuses + (this.approvedExpenses || 0);
 });
 
 // Virtual for net salary

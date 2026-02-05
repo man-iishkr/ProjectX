@@ -12,7 +12,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
     const [formData, setFormData] = useState({
         name: '',
         code: '',
-        route: '',
+        routeFrom: '',
+        routeTo: '',
+        date: new Date().toISOString().split('T')[0],
         area: '',
         speciality: '',
         hq: '',
@@ -87,18 +89,29 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     </div>
 
                     {/* Location */}
+                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">HQ *</label>
+                            <select name="hq" value={formData.hq} onChange={handleChange} className="w-full border p-2 rounded" required>
+                                <option value="">Select HQ</option>
+                                {hqs.map(hq => (
+                                    <option key={hq._id} value={hq._id}>{hq.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Date</label>
+                            <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded" />
+                        </div>
+                    </div>
+
                     <div>
-                        <label className="block text-sm font-medium mb-1">HQ *</label>
-                        <select name="hq" value={formData.hq} onChange={handleChange} className="w-full border p-2 rounded" required>
-                            <option value="">Select HQ</option>
-                            {hqs.map(hq => (
-                                <option key={hq._id} value={hq._id}>{hq.name}</option>
-                            ))}
-                        </select>
+                        <label className="block text-sm font-medium mb-1">Route From *</label>
+                        <input name="routeFrom" value={formData.routeFrom} onChange={handleChange} className="w-full border p-2 rounded" required placeholder="Start Point" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Route *</label>
-                        <input name="route" value={formData.route} onChange={handleChange} className="w-full border p-2 rounded" required />
+                        <label className="block text-sm font-medium mb-1">Route To *</label>
+                        <input name="routeTo" value={formData.routeTo} onChange={handleChange} className="w-full border p-2 rounded" required placeholder="End Point" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Area *</label>
@@ -149,14 +162,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     </div>
 
                     {/* Admin Status */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Approval Status</label>
-                        <select name="approvalStatus" value={formData.approvalStatus} onChange={handleChange} className="w-full border p-2 rounded">
-                            <option value="Pending">Pending</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
-                        </select>
-                    </div>
+
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium mb-1">Rejected Remark</label>
                         <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded" placeholder="Reason for rejection (if any)" />

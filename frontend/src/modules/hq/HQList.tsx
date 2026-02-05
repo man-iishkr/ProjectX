@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
-import { getHQs, createHQ } from '../../api/hq.api';
+import { getHQs, createHQ, deleteHQ } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { X, Plus } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const HQList: React.FC = () => {
     const [hqs, setHQs] = useState<any[]>([]);
@@ -14,11 +15,14 @@ const HQList: React.FC = () => {
         name: '',
         location: '',
         state: '',
+        password: '',
         employeeStrength: '',
         managerStrength: '',
         transitDays: '',
         transportRemarks: ''
     });
+
+    const { user } = useAuth();
 
     useEffect(() => {
         loadData();
@@ -37,8 +41,21 @@ const HQList: React.FC = () => {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this HQ?')) {
+            try {
+                await deleteHQ(id);
+                loadData();
+            } catch (err: any) {
+                console.error(err);
+                alert(err?.response?.data?.error || 'Failed to delete HQ');
+            }
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +65,7 @@ const HQList: React.FC = () => {
                 name: formData.name,
                 location: formData.location,
                 state: formData.state,
+                password: formData.password,
                 ...(formData.employeeStrength && { employeeStrength: Number(formData.employeeStrength) }),
                 ...(formData.managerStrength && { managerStrength: Number(formData.managerStrength) }),
                 ...(formData.transitDays && { transitDays: Number(formData.transitDays) }),
@@ -64,6 +82,7 @@ const HQList: React.FC = () => {
                     name: '',
                     location: '',
                     state: '',
+                    password: '',
                     employeeStrength: '',
                     managerStrength: '',
                     transitDays: '',
@@ -100,6 +119,15 @@ const HQList: React.FC = () => {
                     { header: 'Transit Days', accessor: (row) => row.transitDays || 0 },
                     { header: 'Transport', accessor: (row) => row.transportRemarks || '-' },
                 ]}
+                actions={(row) => (
+                    <div className="flex gap-2">
+                        {user?.role === 'admin' && (
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(row._id)}>
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                        )}
+                    </div>
+                )}
             />
 
             {isModalOpen && (
@@ -144,6 +172,18 @@ const HQList: React.FC = () => {
                                     value={formData.state}
                                     onChange={handleInputChange}
                                     required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Password (for HQ Login)</label>
+                                <Input
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="Set login password"
                                 />
                             </div>
 

@@ -5,8 +5,10 @@ import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { X, Pencil, Trash2, Plus } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const EmployeeList: React.FC = () => {
+    const { user } = useAuth();
     const [employees, setEmployees] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -147,9 +149,11 @@ const EmployeeList: React.FC = () => {
                         <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
                             <Pencil className="h-4 w-4 text-blue-600" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(row._id)}>
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
+                        {user?.role === 'admin' && (
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(row._id)}>
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                        )}
                     </div>
                 )}
             />

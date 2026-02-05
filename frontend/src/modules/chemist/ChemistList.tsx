@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getChemists, deleteChemist } from '../../api/chemist.api';
+import ChemistForm from './ChemistForm';
 
 const ChemistList: React.FC = () => {
     const [chemists, setChemists] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showForm, setShowForm] = useState(false);
+    const [editingChemist, setEditingChemist] = useState<any>(null);
 
     useEffect(() => {
         loadChemists();
@@ -30,13 +33,30 @@ const ChemistList: React.FC = () => {
         }
     };
 
+    const handleEdit = (chemist: any) => {
+        setEditingChemist(chemist);
+        setShowForm(true);
+    };
+
+    const handleAdd = () => {
+        setEditingChemist(null);
+        setShowForm(true);
+    };
+
+    const handleFormSuccess = () => {
+        loadChemists();
+    };
+
     if (loading) return <div>Loading...</div>;
 
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Chemists</h2>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                <button
+                    onClick={handleAdd}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                >
                     Add Chemist
                 </button>
             </div>
@@ -51,14 +71,30 @@ const ChemistList: React.FC = () => {
                     { header: 'Address', accessor: 'address' },
                 ]}
                 actions={(row) => (
-                    <button
-                        onClick={() => handleDelete(row._id)}
-                        className="text-red-600 hover:text-red-900"
-                    >
-                        Delete
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleEdit(row)}
+                            className="text-blue-600 hover:text-blue-900"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            onClick={() => handleDelete(row._id)}
+                            className="text-red-600 hover:text-red-900"
+                        >
+                            Delete
+                        </button>
+                    </div>
                 )}
             />
+
+            {showForm && (
+                <ChemistForm
+                    onClose={() => setShowForm(false)}
+                    onSuccess={handleFormSuccess}
+                    initialData={editingChemist}
+                />
+            )}
         </div>
     );
 };

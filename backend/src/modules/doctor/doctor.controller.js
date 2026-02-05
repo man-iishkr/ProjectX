@@ -1,4 +1,5 @@
 const Doctor = require('./doctor.model');
+const Route = require('../route/route.model');
 
 // @desc    Add new doctor
 // @route   POST /api/v1/doctors
@@ -23,6 +24,40 @@ exports.createDoctor = async (req, res, next) => {
                 type: 'Point',
                 coordinates: [parseFloat(req.body.longitude), parseFloat(req.body.latitude)]
             };
+        }
+
+        // Check/Sync Route From
+        if (req.body.routeFrom && req.body.hq) {
+            const routeName = req.body.routeFrom;
+            const routeExists = await Route.findOne({
+                name: routeName,
+                hq: req.body.hq
+            });
+
+            if (!routeExists) {
+                await Route.create({
+                    name: routeName,
+                    hq: req.body.hq,
+                    createdBy: req.user.id
+                });
+            }
+        }
+
+        // Check/Sync Route To
+        if (req.body.routeTo && req.body.hq) {
+            const routeName = req.body.routeTo;
+            const routeExists = await Route.findOne({
+                name: routeName,
+                hq: req.body.hq
+            });
+
+            if (!routeExists) {
+                await Route.create({
+                    name: routeName,
+                    hq: req.body.hq,
+                    createdBy: req.user.id
+                });
+            }
         }
 
         const doctor = await Doctor.create(req.body);
@@ -111,6 +146,44 @@ exports.updateDoctor = async (req, res, next) => {
 
         // Prevent location update if strict rules apply, but HQ might need to correct it.
         // PRD says "Doctor location immutable by employee". HQ/Admin can probably edit.
+
+        // Sync Route From
+        if (req.body.routeFrom) {
+            const hqId = req.body.hq || doctor.hq;
+            const routeName = req.body.routeFrom;
+
+            const routeExists = await Route.findOne({
+                name: routeName,
+                hq: hqId
+            });
+
+            if (!routeExists) {
+                await Route.create({
+                    name: routeName,
+                    hq: hqId,
+                    createdBy: req.user.id
+                });
+            }
+        }
+
+        // Sync Route To
+        if (req.body.routeTo) {
+            const hqId = req.body.hq || doctor.hq;
+            const routeName = req.body.routeTo;
+
+            const routeExists = await Route.findOne({
+                name: routeName,
+                hq: hqId
+            });
+
+            if (!routeExists) {
+                await Route.create({
+                    name: routeName,
+                    hq: hqId,
+                    createdBy: req.user.id
+                });
+            }
+        }
 
         // Update geojson if lat/lng provided
         if (req.body.latitude && req.body.longitude) {
