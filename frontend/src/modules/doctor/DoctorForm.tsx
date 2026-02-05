@@ -1,0 +1,175 @@
+import React, { useState, useEffect } from 'react';
+import { createDoctor, updateDoctor } from '../../api/doctor.api';
+import { getHQs } from '../../api/hq.api';
+
+interface DoctorFormProps {
+    onClose: () => void;
+    onSuccess: () => void;
+    initialData?: any;
+}
+
+const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        code: '',
+        route: '',
+        area: '',
+        speciality: '',
+        hq: '',
+        clinicAddress: '',
+        residentialAddress: '',
+        class: 'General',
+        frequency: 1,
+        mobile: '',
+        phone: '',
+        email: '',
+        rejectedRemark: '',
+        approvalStatus: 'Pending'
+    });
+    const [hqs, setHqs] = useState<any[]>([]);
+
+    useEffect(() => {
+        loadHQs();
+        if (initialData) {
+            setFormData({
+                ...formData,
+                ...initialData,
+                hq: initialData.hq?._id || initialData.hq // Handle populated object or ID
+            });
+        }
+    }, [initialData]);
+
+    const loadHQs = async () => {
+        try {
+            const res = await getHQs();
+            if (res.success) {
+                setHqs(res.data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (initialData) {
+                await updateDoctor(initialData._id, formData);
+            } else {
+                await createDoctor(formData);
+            }
+            onSuccess();
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save doctor');
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-card p-6 rounded-lg w-full max-w-4xl my-8">
+                <h2 className="text-xl font-bold mb-4">{initialData ? 'Edit Doctor' : 'Add Doctor'}</h2>
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    {/* Basic Info */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Dr Name *</label>
+                        <input name="name" value={formData.name} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Dr Code</label>
+                        <input name="code" value={formData.code} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">HQ *</label>
+                        <select name="hq" value={formData.hq} onChange={handleChange} className="w-full border p-2 rounded" required>
+                            <option value="">Select HQ</option>
+                            {hqs.map(hq => (
+                                <option key={hq._id} value={hq._id}>{hq.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Route *</label>
+                        <input name="route" value={formData.route} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Area *</label>
+                        <input name="area" value={formData.area} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+
+                    {/* Professional Info */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Speciality *</label>
+                        <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Class</label>
+                        <select name="class" value={formData.class} onChange={handleChange} className="w-full border p-2 rounded">
+                            <option value="General">General</option>
+                            <option value="Core">Core</option>
+                            <option value="Super Core">Super Core</option>
+                            <option value="Important">Important</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Frequency</label>
+                        <input type="number" name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border p-2 rounded" min="1" />
+                    </div>
+
+                    {/* Contact - Addresses */}
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-1">Clinic Address *</label>
+                        <input name="clinicAddress" value={formData.clinicAddress} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-1">Residential Address</label>
+                        <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+
+                    {/* Contact - Phones */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Mobile *</label>
+                        <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full border p-2 rounded" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Phone</label>
+                        <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Email</label>
+                        <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+
+                    {/* Admin Status */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Approval Status</label>
+                        <select name="approvalStatus" value={formData.approvalStatus} onChange={handleChange} className="w-full border p-2 rounded">
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-1">Rejected Remark</label>
+                        <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded" placeholder="Reason for rejection (if any)" />
+                    </div>
+
+                    <div className="md:col-span-2 flex justify-end gap-2 mt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded hover:bg-muted">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Doctor</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default DoctorForm;

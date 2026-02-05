@@ -1,0 +1,209 @@
+import React, { useEffect, useState } from 'react';
+import Table from '../../components/Table';
+import { getHQs, createHQ } from '../../api/hq.api';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { X, Plus } from 'lucide-react';
+
+const HQList: React.FC = () => {
+    const [hqs, setHQs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        location: '',
+        state: '',
+        employeeStrength: '',
+        managerStrength: '',
+        transitDays: '',
+        transportRemarks: ''
+    });
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const res = await getHQs();
+            if (res.success) {
+                setHQs(res.data);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const submitData = {
+                name: formData.name,
+                location: formData.location,
+                state: formData.state,
+                ...(formData.employeeStrength && { employeeStrength: Number(formData.employeeStrength) }),
+                ...(formData.managerStrength && { managerStrength: Number(formData.managerStrength) }),
+                ...(formData.transitDays && { transitDays: Number(formData.transitDays) }),
+                ...(formData.transportRemarks && { transportRemarks: formData.transportRemarks })
+            };
+
+            const response = await createHQ(submitData);
+
+            if (response.success) {
+                alert('HQ created successfully!');
+                setIsModalOpen(false);
+                loadData();
+                setFormData({
+                    name: '',
+                    location: '',
+                    state: '',
+                    employeeStrength: '',
+                    managerStrength: '',
+                    transitDays: '',
+                    transportRemarks: ''
+                });
+            }
+        } catch (err: any) {
+            console.error('Error creating HQ:', err);
+            const errorMessage = err?.response?.data?.error || 'Failed to create HQ. Please try again.';
+            alert(errorMessage);
+        }
+    };
+
+    if (loading) return <div>Loading...</div>;
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold">HQ Management</h2>
+                <Button onClick={() => setIsModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add HQ
+                </Button>
+            </div>
+
+            <Table
+                data={hqs}
+                columns={[
+                    { header: 'Name', accessor: 'name' },
+                    { header: 'Location', accessor: 'location' },
+                    { header: 'State', accessor: 'state' },
+                    { header: 'Emp. Strength', accessor: (row) => row.employeeStrength || 0 },
+                    { header: 'Mgr. Strength', accessor: (row) => row.managerStrength || 0 },
+                    { header: 'Transit Days', accessor: (row) => row.transitDays || 0 },
+                    { header: 'Transport', accessor: (row) => row.transportRemarks || '-' },
+                ]}
+            />
+
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-background p-6 rounded-lg w-full max-w-md shadow-lg relative">
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <h3 className="text-xl font-bold mb-4">Add HQ</h3>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Name</label>
+                                <Input
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="e.g. Delhi HQ"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Location</label>
+                                <Input
+                                    name="location"
+                                    value={formData.location}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="Address"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">State</label>
+                                <Input
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Employee Strength</label>
+                                <Input
+                                    name="employeeStrength"
+                                    type="number"
+                                    value={formData.employeeStrength}
+                                    onChange={handleInputChange}
+                                    placeholder="Optional"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Manager Strength</label>
+                                <Input
+                                    name="managerStrength"
+                                    type="number"
+                                    value={formData.managerStrength}
+                                    onChange={handleInputChange}
+                                    placeholder="Optional"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Transit Days</label>
+                                <Input
+                                    name="transitDays"
+                                    type="number"
+                                    value={formData.transitDays}
+                                    onChange={handleInputChange}
+                                    placeholder="Optional"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Transport Remarks</label>
+                                <Input
+                                    name="transportRemarks"
+                                    value={formData.transportRemarks}
+                                    onChange={handleInputChange}
+                                    placeholder="Optional - e.g., Via flight, Train, etc."
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-6">
+                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit">
+                                    Create
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default HQList;
