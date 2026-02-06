@@ -143,9 +143,10 @@ const TargetList: React.FC = () => {
                     <div className="w-64">
                         <label className="block text-sm font-medium mb-1 text-gray-700">Filter by HQ</label>
                         <select
-                            value={selectedHq}
+                            value={selectedHq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                             onChange={(e) => setSelectedHq(e.target.value)}
-                            className="w-full border p-2 rounded"
+                            className="w-full border p-2 rounded disabled:bg-gray-100"
+                            disabled={user?.role === 'hq'}
                         >
                             <option value="">All HQs</option>
                             {hqs.map(hq => (

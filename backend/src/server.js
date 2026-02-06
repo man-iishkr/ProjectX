@@ -9,6 +9,7 @@ connectDB();
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('Environment loaded (v2).');
 });
 
 process.on('unhandledRejection', (err, promise) => {

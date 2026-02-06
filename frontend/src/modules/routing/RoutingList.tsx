@@ -189,9 +189,10 @@ const RoutingList: React.FC = () => {
                                 <label className="text-sm font-medium mb-1 block">Headquarters (HQ)</label>
                                 <select
                                     name="hq"
-                                    value={formData.hq}
+                                    value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                                     onChange={handleInputChange}
                                     required
+                                    disabled={user?.role === 'hq'}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <option value="">Select HQ</option>

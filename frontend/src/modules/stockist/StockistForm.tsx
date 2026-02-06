@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createStockist, updateStockist } from '../../api/stockist.api';
 import { getHQs } from '../../api/hq.api';
+import { useAuth } from '../../context/AuthContext';
 
 interface StockistFormProps {
     onClose: () => void;
@@ -9,10 +10,11 @@ interface StockistFormProps {
 }
 
 const StockistForm: React.FC<StockistFormProps> = ({ onClose, onSuccess, initialData }) => {
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
         code: '',
-        hq: '',
+        hq: user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '',
         address: '',
         contact: '',
         status: 'Active'
@@ -77,7 +79,14 @@ const StockistForm: React.FC<StockistFormProps> = ({ onClose, onSuccess, initial
 
                     <div>
                         <label className="block text-sm font-medium mb-1">HQ *</label>
-                        <select name="hq" value={formData.hq} onChange={handleChange} className="w-full border p-2 rounded" required>
+                        <select
+                            name="hq"
+                            value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
+                            onChange={handleChange}
+                            className="w-full border p-2 rounded disabled:bg-gray-100"
+                            required
+                            disabled={user?.role === 'hq'}
+                        >
                             <option value="">Select HQ</option>
                             {hqs.map(hq => (
                                 <option key={hq._id} value={hq._id}>{hq.name}</option>

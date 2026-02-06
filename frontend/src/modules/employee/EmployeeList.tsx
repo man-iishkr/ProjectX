@@ -61,7 +61,7 @@ const EmployeeList: React.FC = () => {
             username: '',
             password: '',
             role: 'employee',
-            hq: '',
+            hq: user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '', // Auto-set HQ
             designation: '',
             state: '',
             division: '',
@@ -200,7 +200,9 @@ const EmployeeList: React.FC = () => {
                                         value={formData.password}
                                         onChange={handleInputChange}
                                         required={!isEditing}
+                                        minLength={6}
                                     />
+                                    <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
                                 </div>
                             )}
 
@@ -223,10 +225,11 @@ const EmployeeList: React.FC = () => {
                                     <label className="text-sm font-medium mb-1 block">Reporting HQ</label>
                                     <select
                                         name="hq"
-                                        value={formData.hq}
+                                        value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                                         onChange={handleInputChange}
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                                         required={formData.role === 'employee'}
+                                        disabled={user?.role === 'hq'}
                                     >
                                         <option value="">Select HQ</option>
                                         {hqs.map((hq) => (

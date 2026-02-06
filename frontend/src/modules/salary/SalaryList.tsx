@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Table from '../../components/Table';
 import { Button } from '../../components/ui/Button';
-import { getSalaries, upsertSalary, getSalaryStats } from '../../api/salary.api';
+import { getSalaries, upsertSalary, getSalaryStats, updatePaymentStatus } from '../../api/salary.api';
 import { getEmployees } from '../../api/employee.api';
 import { FileText, DollarSign, RefreshCw } from 'lucide-react';
 import SalarySlip from './SalarySlip';
@@ -144,12 +144,30 @@ const SalaryList: React.FC = () => {
                         { header: 'Net Salary', accessor: 'netSalary' }
                     ]}
                     actions={(row) => (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                             {row.salaryRecord ? (
-                                <Button size="sm" variant="outline" onClick={() => handleViewSlip(row.salaryRecord)}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    View Slip
-                                </Button>
+                                <>
+                                    <select
+                                        className="h-8 rounded border border-slate-300 text-xs"
+                                        value={row.salaryRecord.paymentStatus}
+                                        onChange={async (e) => {
+                                            try {
+                                                await updatePaymentStatus(row.salaryRecord._id, { status: e.target.value });
+                                                loadData();
+                                            } catch (err) {
+                                                alert('Failed to update status');
+                                            }
+                                        }}
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="processed">Processed</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="hold">Hold</option>
+                                    </select>
+                                    <Button size="sm" variant="outline" onClick={() => handleViewSlip(row.salaryRecord)}>
+                                        <FileText className="h-4 w-4" />
+                                    </Button>
+                                </>
                             ) : (
                                 <Button size="sm" onClick={() => handleGenerate(row._id)}>
                                     <RefreshCw className="mr-2 h-4 w-4" />

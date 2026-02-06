@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createDoctor, updateDoctor } from '../../api/doctor.api';
 import { getHQs } from '../../api/hq.api';
+import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
+import { useAuth } from '../../context/AuthContext';
 
 interface DoctorFormProps {
     onClose: () => void;
@@ -9,6 +11,7 @@ interface DoctorFormProps {
 }
 
 const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData }) => {
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
         code: '',
@@ -17,7 +20,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         date: new Date().toISOString().split('T')[0],
         area: '',
         speciality: '',
-        hq: '',
+        hq: user?.role === 'hq' ? user.hq : '',
         clinicAddress: '',
         residentialAddress: '',
         class: 'General',
@@ -25,6 +28,10 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         mobile: '',
         phone: '',
         email: '',
+        location: {
+            type: 'Point',
+            coordinates: [0, 0] // [lng, lat]
+        },
         rejectedRemark: '',
         approvalStatus: 'Pending'
     });
@@ -50,6 +57,17 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleLocationSelect = (address: string, lat?: number, lng?: number) => {
+        setFormData(prev => ({
+            ...prev,
+            clinicAddress: address,
+            location: (lat && lng) ? {
+                type: 'Point',
+                coordinates: [lng, lat]
+            } : prev.location
+        }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -89,10 +107,18 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     </div>
 
                     {/* Location */}
+                    {/* Location */}
                     <div className="md:col-span-2 grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">HQ *</label>
-                            <select name="hq" value={formData.hq} onChange={handleChange} className="w-full border p-2 rounded" required>
+                            <select
+                                name="hq"
+                                value={formData.hq || (user?.role === 'hq' ? user.hq : '')}
+                                onChange={handleChange}
+                                className="w-full border p-2 rounded disabled:bg-gray-100"
+                                required
+                                disabled={user?.role === 'hq'}
+                            >
                                 <option value="">Select HQ</option>
                                 {hqs.map(hq => (
                                     <option key={hq._id} value={hq._id}>{hq.name}</option>
@@ -140,7 +166,15 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     {/* Contact - Addresses */}
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium mb-1">Clinic Address *</label>
-                        <input name="clinicAddress" value={formData.clinicAddress} onChange={handleChange} className="w-full border p-2 rounded" required />
+                        <MapmyIndiaSearch
+                            value={formData.clinicAddress}
+                            onSelect={handleLocationSelect}
+                            placeholder="Search Clinic Location..."
+                            className="w-full"
+                        />
+                        {formData.location?.coordinates[0] !== 0 && (
+                            <p className="text-xs text-green-600 mt-1">Location Coordinates Captured</p>
+                        )}
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium mb-1">Residential Address</label>
@@ -173,8 +207,8 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Doctor</button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

@@ -82,15 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items = defaultAdminItems }) => {
                 </nav>
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-900">
-                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                    <h4 className="font-semibold text-sm text-white">Need Help?</h4>
-                    <p className="text-xs text-slate-400 mt-1 mb-3">Check our documentation.</p>
-                    <button className="text-xs bg-slate-700 text-white border-0 px-2 py-1.5 rounded-md shadow-sm w-full font-medium hover:bg-slate-600 transition-colors">
-                        Documentation
-                    </button>
-                </div>
-            </div>
+
         </aside>
     );
 };

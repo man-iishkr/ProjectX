@@ -58,6 +58,10 @@ exports.upsertSalary = async (req, res) => {
             notes
         } = req.body;
 
+        if (!employeeId || !year || !month) {
+            return res.status(400).json({ message: 'Missing required fields: employeeId, year, month' });
+        }
+
         // Validate employee exists
         const employee = await User.findById(employeeId);
         if (!employee) {
@@ -68,13 +72,18 @@ exports.upsertSalary = async (req, res) => {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
 
-        const expenses = await Expense.find({
-            employee: employeeId,
-            date: { $gte: startDate, $lte: endDate },
-            status: 'Approved'
-        });
-
-        const totalApprovedExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        let totalApprovedExpenses = 0;
+        try {
+            const expenses = await Expense.find({
+                employee: employeeId,
+                date: { $gte: startDate, $lte: endDate },
+                status: 'Approved'
+            });
+            totalApprovedExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        } catch (expError) {
+            console.error('Error fetching expenses:', expError);
+            // Continue with 0 expenses
+        }
 
         const filter = {
             employee: employeeId,
@@ -109,6 +118,7 @@ exports.upsertSalary = async (req, res) => {
 
         res.json({ message: 'Salary record saved', salary });
     } catch (error) {
+        console.error('Error in upsertSalary:', error);
         res.status(500).json({ message: 'Error saving salary', error: error.message });
     }
 };
@@ -133,6 +143,7 @@ exports.updatePaymentStatus = async (req, res) => {
 
         res.json({ message: 'Payment status updated', salary });
     } catch (error) {
+        console.error('Error updating payment status:', error);
         res.status(500).json({ message: 'Error updating payment status', error: error.message });
     }
 };

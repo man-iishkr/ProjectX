@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const SalarySchema = new mongoose.Schema({
     employee: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Employee',
+        ref: 'User',
         required: true
     },
     period: {
@@ -75,20 +75,12 @@ const SalarySchema = new mongoose.Schema({
         type: String,
         maxlength: 500
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    notes: {
+        type: String,
+        maxlength: 500
     }
-});
-
-// Update updatedAt on save
-SalarySchema.pre('save', function (next) {
-    this.updatedAt = Date.now();
-    next();
+}, {
+    timestamps: true
 });
 
 // Composite unique index

@@ -94,22 +94,36 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="border-l-4 border-l-blue-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Field Force</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            {user?.role === 'hq' ? 'Working Professionals' : 'Total Field Force'}
+                        </CardTitle>
                         <Users className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{summary?.counts?.employees || 0}</div>
-                        <p className="text-xs text-muted-foreground">Active Employees</p>
+                        <p className="text-xs text-muted-foreground">
+                            {user?.role === 'hq' ? 'Under this HQ' : 'Active Employees'}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card className="border-l-4 border-l-green-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Network Size</CardTitle>
-                        <Network className="h-4 w-4 text-green-500" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            {user?.role === 'hq' ? 'Total Doctors' : 'Network Size'}
+                        </CardTitle>
+                        {user?.role === 'hq' ? (
+                            <div className="h-4 w-4 text-green-500">🩺</div>
+                        ) : (
+                            <Network className="h-4 w-4 text-green-500" />
+                        )}
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{summary?.counts?.hqs || 0}</div>
-                        <p className="text-xs text-muted-foreground">Operational HQs</p>
+                        <div className="text-2xl font-bold">
+                            {user?.role === 'hq' ? (summary?.counts?.doctors || 0) : (summary?.counts?.hqs || 0)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {user?.role === 'hq' ? 'Registered Doctors' : 'Operational HQs'}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card className="border-l-4 border-l-purple-500">

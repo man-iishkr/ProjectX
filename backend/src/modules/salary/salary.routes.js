@@ -23,7 +23,7 @@ router.get('/:id', salaryController.getSalaryById);
 router.post('/', salaryController.upsertSalary);
 
 // Update payment status
-router.patch('/:id/payment', salaryController.updatePaymentStatus);
+router.put('/:id/payment', salaryController.updatePaymentStatus);
 
 // Delete salary record
 router.delete('/:id', salaryController.deleteSalary);

@@ -8,8 +8,10 @@ exports.createEmployee = async (req, res, next) => {
         // Force role to employee
         req.body.role = 'employee';
 
-        // If HQ is creating, force HQ ID (if we allow HQ to create)
-        // For now, assuming Admin creates all or assigns HQ
+        // If HQ is creating, force HQ ID to their own
+        if (req.user.role === 'hq') {
+            req.body.hq = req.user.hq;
+        }
 
         const user = await User.create(req.body);
 

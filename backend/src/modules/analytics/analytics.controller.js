@@ -202,16 +202,21 @@ exports.getDashboardSummary = async (req, res) => {
         let employeeQuery = { role: 'employee' };
         let hqQuery = {};
         let stockistQuery = {}; // Stockist usually linked to HQ? Assuming global for now or refine later
+        let doctorQuery = {};
 
         if (hqId) {
             employeeQuery.hq = hqId;
             hqQuery._id = hqId; // If specific HQ selected, count is 1? Or maybe valid users in that HQ.
-            // stockistQuery.hq = hqId; // If stockist has HQ link
+            doctorQuery.hq = hqId; // Correct field name from model
         }
 
         const totalEmployees = await User.countDocuments(employeeQuery);
         const totalHQs = await require('../hq/hq.model').countDocuments(hqQuery); // Lazy require or move to top
         const totalStockists = await require('../stockist/stockist.model').countDocuments(stockistQuery);
+
+        // Count doctors
+        const Doctor = require('../doctor/doctor.model');
+        const totalDoctors = await Doctor.countDocuments(doctorQuery);
 
         // 2. Get Analytics Data for Period
         let analyticsQuery = {
@@ -245,7 +250,8 @@ exports.getDashboardSummary = async (req, res) => {
             counts: {
                 employees: totalEmployees,
                 hqs: totalHQs,
-                stockists: totalStockists
+                stockists: totalStockists,
+                doctors: totalDoctors
             },
             periodMetrics: {
                 totalVisits,

@@ -28,8 +28,8 @@ app.use(helmet());
 
 // Rate Limiting
 const limiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 mins
-    max: 100
+    windowMs: 15 * 60 * 1000, // 15 mins
+    max: 1000 // Increased for dev/testing
 });
 app.use(limiter);
 
@@ -62,6 +62,7 @@ app.use('/api/v1/stockists', require('./modules/stockist/stockist.routes'));
 app.use('/api/v1/holidays', require('./modules/holiday/holiday.routes'));
 app.use('/api/v1/admin', require('./modules/admin-tools/import.routes'));
 app.use('/api/v1/notifications', require('./modules/notification/notification.routes'));
+app.use('/api/v1/mappls', require('./modules/mappls/mappls.routes'));
 
 // ... other routes
 

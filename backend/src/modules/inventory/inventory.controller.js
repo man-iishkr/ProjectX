@@ -38,9 +38,27 @@ exports.getInventory = async (req, res, next) => {
             query.stockist = req.query.stockistId;
         }
 
-        // If user is HQ, maybe restrict to their coverage area? 
-        // For now, assuming standard access controls handled by route or simple filter.
-        // If user is stockist (not implemented yet), they should only see their own.
+        // Access Control
+        if (req.user.role === 'hq') {
+            // Find stockists belonging to this HQ
+            const stockists = await Stockist.find({ hq: req.user.hq }).select('_id');
+            const stockistIds = stockists.map(s => s._id);
+
+            // Allow filtering by specific stockist if it belongs to this HQ
+            if (query.stockist) {
+                if (!stockistIds.some(id => id.toString() === query.stockist.toString())) {
+                    return res.status(403).json({ success: false, error: 'Not authorized for this stockist' });
+                }
+            } else {
+                // Otherwise show all stockists for this HQ
+                query.stockist = { $in: stockistIds };
+            }
+        } else if (req.user.role === 'employee') {
+            // Employee can see stock? Maybe mapped to their HQ?
+            // For now, let's keep it open or restrict to their HQ similar to above
+            const stockists = await Stockist.find({ hq: req.user.hq }).select('_id');
+            query.stockist = { $in: stockists.map(s => s._id) };
+        }
 
         const inventory = await Inventory.find(query)
             .populate('product', 'name code unitPrice')

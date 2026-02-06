@@ -13,7 +13,7 @@ router.get('/targets', async (req, res, next) => {
     try {
         let query = {};
         if (req.user.role !== 'admin') query.hq = req.user.hq;
-        const targets = await Target.find(query);
+        const targets = await Target.find(query).populate('hq', 'name');
         res.json({ success: true, data: targets });
     } catch (err) { next(err); }
 });
@@ -23,20 +23,33 @@ router.post('/targets/bulk', authorize('admin', 'hq'), async (req, res, next) =>
     try {
         const { hq, year, targets } = req.body;
 
+        // Force HQ if user is 'hq'
+        if (req.user.role === 'hq') {
+            if (hq && hq.toString() !== req.user.hq.toString()) {
+                // Alternatively, just overwrite it silently:
+                // req.body.hq = req.user.hq;
+                // But let's error if they try to be sneaky, or just overwrite. Overwriting is safer.
+            }
+            // Better: just overwrite
+            req.body.hq = req.user.hq;
+        }
+
+        const effectiveHQ = req.user.role === 'hq' ? req.user.hq : hq;
+
         // 1. Validate
-        if (!hq || !year || !targets || targets.length !== 12) {
+        if (!effectiveHQ || !year || !targets || targets.length !== 12) {
             return res.status(400).json({ success: false, error: 'Please provide HQ, Year and 12 monthly targets' });
         }
 
         // 2. Check if already exists for this year
-        const existing = await Target.findOne({ hq, year });
+        const existing = await Target.findOne({ hq: effectiveHQ, year });
         if (existing) {
             return res.status(400).json({ success: false, error: `Targets for Year ${year} already exist for this HQ` });
         }
 
         // 3. Prepare documents
         const docs = targets.map((val, idx) => ({
-            hq,
+            hq: effectiveHQ,
             year,
             month: idx + 1,
             targetValue: val

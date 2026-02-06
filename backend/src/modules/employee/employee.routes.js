@@ -16,7 +16,7 @@ router.use(protect);
 router
     .route('/')
     .get(authorize('admin', 'hq'), getEmployees)
-    .post(authorize('admin'), createEmployee);
+    .post(authorize('admin', 'hq'), createEmployee);
 
 router
     .route('/:id')

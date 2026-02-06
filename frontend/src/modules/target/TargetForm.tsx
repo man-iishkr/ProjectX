@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createBulkTargets } from '../../api/target.api';
 import { getHQs } from '../../api/hq.api';
+import { useAuth } from '../../context/AuthContext';
 
 interface TargetFormProps {
     onClose: () => void;
@@ -8,7 +9,8 @@ interface TargetFormProps {
 }
 
 const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
-    const [hq, setHq] = useState('');
+    const { user } = useAuth();
+    const [hq, setHq] = useState(user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '');
     const [year, setYear] = useState(new Date().getFullYear());
     const [targets, setTargets] = useState<number[]>(new Array(12).fill(0));
     const [hqs, setHqs] = useState<any[]>([]);
@@ -60,7 +62,13 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">Select HQ *</label>
-                            <select value={hq} onChange={(e) => setHq(e.target.value)} className="w-full border p-2 rounded" required>
+                            <select
+                                value={hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
+                                onChange={(e) => setHq(e.target.value)}
+                                className="w-full border p-2 rounded disabled:bg-gray-100"
+                                required
+                                disabled={user?.role === 'hq'}
+                            >
                                 <option value="">Select HQ</option>
                                 {hqs.map(hq => (
                                     <option key={hq._id} value={hq._id}>{hq.name}</option>

@@ -22,6 +22,7 @@ import InventoryList from './modules/inventory/InventoryList';
 import SalaryList from './modules/salary/SalaryList';
 import DataImport from './modules/admin-tools/DataImport';
 import CallReportList from './modules/callReport/CallReportList';
+import ReportCall from './modules/callReport/ReportCall';
 
 // Protect Routes Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: any, allowedRoles: string[] }) => {
@@ -87,7 +88,14 @@ const App: React.FC = () => {
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="*" element={<Placeholder title="HQ Page" />} />
+        <Route path="employees" element={<EmployeeList />} />
+        <Route path="doctors" element={<DoctorList />} />
+        <Route path="routing" element={<RoutingList />} />
+        <Route path="targets" element={<TargetList />} />
+        <Route path="inventory" element={<InventoryList />} />
+        <Route path="stockists" element={<StockistList />} />
+        <Route path="expenses" element={<ExpenseList />} />
+        <Route path="calls" element={<CallReportList />} />
       </Route>
 
       {/* EMPLOYEE ROUTES */}
@@ -97,6 +105,7 @@ const App: React.FC = () => {
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="calls" element={<ReportCall />} />
         <Route path="*" element={<Placeholder title="Employee Page" />} />
       </Route>
 

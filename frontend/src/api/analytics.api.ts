@@ -51,6 +51,7 @@ export interface DashboardSummary {
         employees: number;
         hqs: number;
         stockists: number;
+        doctors: number;
     };
     periodMetrics: {
         totalVisits: number;

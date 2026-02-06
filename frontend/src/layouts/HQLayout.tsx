@@ -19,6 +19,7 @@ const items = [
     { label: 'Doctors', path: '/hq/doctors', icon: <Stethoscope className="h-4 w-4" /> },
     { label: 'Routing', path: '/hq/routing', icon: <Map className="h-4 w-4" /> },
     { label: 'Targets', path: '/hq/targets', icon: <Target className="h-4 w-4" /> },
+    { label: 'Stockists', path: '/hq/stockists', icon: <Package className="h-4 w-4" /> },
     { label: 'Inventory', path: '/hq/inventory', icon: <Package className="h-4 w-4" /> },
     { label: 'Expenses Approval', path: '/hq/expenses', icon: <Receipt className="h-4 w-4" /> },
     { label: 'Call Reports', path: '/hq/calls', icon: <PhoneCall className="h-4 w-4" /> },
