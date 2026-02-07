@@ -1,8 +1,9 @@
 import axios from './axios';
 
-export const getChemists = async () => {
+export const getChemists = async (hqId?: string) => {
     try {
-        const response = await axios.get('/chemists');
+        const params = hqId ? { hq: hqId } : {};
+        const response = await axios.get('/chemists', { params });
         return response.data;
     } catch (error: any) {
         throw error.response?.data || error.message;

@@ -33,7 +33,11 @@ exports.getEmployees = async (req, res, next) => {
 
         // If Admin, get all (or filter by query)
         if (req.user.role === 'admin') {
-            query = User.find({ role: 'employee' });
+            let filter = { role: 'employee' };
+            if (req.query.hq) {
+                filter.hq = req.query.hq;
+            }
+            query = User.find(filter);
         }
         // If HQ, get only their employees
         else if (req.user.role === 'hq') {

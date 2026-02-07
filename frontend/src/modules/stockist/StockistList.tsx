@@ -1,23 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getStockists, deleteStockist } from '../../api/stockist.api';
+import { getHQs } from '../../api/hq.api';
+import { useAuth } from '../../context/AuthContext';
 import StockistForm from './StockistForm';
 
 const StockistList: React.FC = () => {
+    const { user } = useAuth();
     const [stockists, setStockists] = useState<any[]>([]);
+    const [hqs, setHQs] = useState<any[]>([]);
+    const [selectedHQ, setSelectedHQ] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingStockist, setEditingStockist] = useState<any>(null);
 
     useEffect(() => {
-        loadStockists();
-    }, []);
+        loadData();
+    }, [selectedHQ]);
 
-    const loadStockists = async () => {
+    const loadData = async () => {
         try {
-            const res = await getStockists();
-            if (res.success) {
-                setStockists(res.data);
+            setLoading(true);
+            const promises: Promise<any>[] = [getStockists(selectedHQ)];
+            if (user?.role === 'admin' && hqs.length === 0) {
+                promises.push(getHQs());
+            }
+
+            const [stockistsRes, hqsRes] = await Promise.all(promises);
+
+            if (stockistsRes.success) {
+                setStockists(stockistsRes.data);
+            }
+            if (hqsRes && hqsRes.success) {
+                setHQs(hqsRes.data);
             }
         } catch (err) {
             console.error(err);
@@ -29,7 +44,7 @@ const StockistList: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure?')) {
             await deleteStockist(id);
-            loadStockists();
+            loadData();
         }
     };
 
@@ -44,7 +59,7 @@ const StockistList: React.FC = () => {
     };
 
     const handleFormSuccess = () => {
-        loadStockists();
+        loadData();
     };
 
     if (loading) return <div>Loading...</div>;
@@ -53,12 +68,28 @@ const StockistList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Stockists</h2>
-                <button
-                    onClick={handleAdd}
-                    className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
-                >
-                    Add Stockist
-                </button>
+                <div className="flex gap-4">
+                    {user?.role === 'admin' && (
+                        <select
+                            className="border rounded px-2 py-1"
+                            value={selectedHQ}
+                            onChange={(e) => setSelectedHQ(e.target.value)}
+                        >
+                            <option value="">All HQs</option>
+                            {hqs.map((hq: any) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <button
+                        onClick={handleAdd}
+                        className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
+                    >
+                        Add Stockist
+                    </button>
+                </div>
             </div>
 
             <Table

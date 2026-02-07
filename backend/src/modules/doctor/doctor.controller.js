@@ -80,7 +80,11 @@ exports.getDoctors = async (req, res, next) => {
 
         // Admin sees all, HQ sees own, Employee sees own HQ's doctors
         if (req.user.role === 'admin') {
-            query = Doctor.find();
+            let filter = {};
+            if (req.query.hq) {
+                filter.hq = req.query.hq;
+            }
+            query = Doctor.find(filter);
         } else {
             query = Doctor.find({ hq: req.user.hq });
         }

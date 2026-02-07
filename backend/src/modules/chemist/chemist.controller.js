@@ -44,7 +44,11 @@ exports.getChemists = async (req, res, next) => {
 
         // Admin sees all, HQ sees own, Employee sees own HQ's chemists
         if (req.user.role === 'admin') {
-            query = Chemist.find();
+            let filter = {};
+            if (req.query.hq) {
+                filter.hq = req.query.hq;
+            }
+            query = Chemist.find(filter);
         } else {
             query = Chemist.find({ hq: req.user.hq });
         }

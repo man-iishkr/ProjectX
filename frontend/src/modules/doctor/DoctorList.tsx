@@ -1,25 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getDoctors, deleteDoctor, updateDoctor } from '../../api/doctor.api';
+import { getHQs } from '../../api/hq.api';
 import DoctorForm from './DoctorForm';
 import { useAuth } from '../../context/AuthContext';
 
 const DoctorList: React.FC = () => {
     const { user } = useAuth();
     const [doctors, setDoctors] = useState<any[]>([]);
+    const [hqs, setHQs] = useState<any[]>([]);
+    const [selectedHQ, setSelectedHQ] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingDoctor, setEditingDoctor] = useState<any>(null);
 
     useEffect(() => {
-        loadDoctors();
-    }, []);
+        loadData();
+    }, [selectedHQ]);
 
-    const loadDoctors = async () => {
+    const loadData = async () => {
         try {
-            const res = await getDoctors();
-            if (res.success) {
-                setDoctors(res.data);
+            setLoading(true);
+            const promises: Promise<any>[] = [getDoctors(selectedHQ)];
+            if (user?.role === 'admin' && hqs.length === 0) {
+                promises.push(getHQs());
+            }
+
+            const [doctorsRes, hqsRes] = await Promise.all(promises);
+
+            if (doctorsRes.success) {
+                setDoctors(doctorsRes.data);
+            }
+            if (hqsRes && hqsRes.success) {
+                setHQs(hqsRes.data);
             }
         } catch (err) {
             console.error(err);
@@ -31,14 +44,14 @@ const DoctorList: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure?')) {
             await deleteDoctor(id);
-            loadDoctors();
+            loadData();
         }
     };
 
     const handleApprove = async (id: string) => {
         if (window.confirm('Approve this doctor?')) {
             await updateDoctor(id, { approvalStatus: 'Approved' });
-            loadDoctors();
+            loadData();
         }
     };
 
@@ -53,7 +66,7 @@ const DoctorList: React.FC = () => {
     };
 
     const handleFormSuccess = () => {
-        loadDoctors();
+        loadData();
     };
 
     if (loading) return <div>Loading...</div>;
@@ -62,12 +75,28 @@ const DoctorList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Doctors</h2>
-                <button
-                    onClick={handleAdd}
-                    className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
-                >
-                    Add Doctor
-                </button>
+                <div className="flex gap-4">
+                    {user?.role === 'admin' && (
+                        <select
+                            className="border rounded px-2 py-1"
+                            value={selectedHQ}
+                            onChange={(e) => setSelectedHQ(e.target.value)}
+                        >
+                            <option value="">All HQs</option>
+                            {hqs.map((hq: any) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <button
+                        onClick={handleAdd}
+                        className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
+                    >
+                        Add Doctor
+                    </button>
+                </div>
             </div>
 
             <Table
@@ -80,6 +109,12 @@ const DoctorList: React.FC = () => {
                     { header: 'Area', accessor: 'area' },
                     { header: 'Resi. Address', accessor: 'residentialAddress' },
                     { header: 'Clinic Address', accessor: 'clinicAddress' },
+                    {
+                        header: 'Coordinates',
+                        accessor: (row) => row.location?.coordinates && row.location.coordinates[0] !== 0
+                            ? `${row.location.coordinates[1]}, ${row.location.coordinates[0]}`
+                            : '-'
+                    },
                     { header: 'Class', accessor: 'class' },
                     { header: 'Speciality', accessor: 'speciality' },
                     { header: 'Frequency', accessor: 'frequency' },

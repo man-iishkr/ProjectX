@@ -11,6 +11,7 @@ const EmployeeList: React.FC = () => {
     const { user } = useAuth();
     const [employees, setEmployees] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
+    const [selectedHQ, setSelectedHQ] = useState('');
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -32,16 +33,28 @@ const EmployeeList: React.FC = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [selectedHQ]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const [empRes, hqRes] = await Promise.all([getEmployees(), getHQs()]);
+            // Fetch employees filtered by generic HQ selector
+            const empPromise = getEmployees(selectedHQ);
+
+            // Only fetch HQs if not already loaded and user is admin/HQ (likely admin needs list for filter)
+            // But EmployeeList already fetched HQs for dropdown in form, so we can reuse or check length
+            const promises: Promise<any>[] = [empPromise];
+            if (hqs.length === 0) {
+                promises.push(getHQs());
+            }
+
+            const [empRes, hqRes] = await Promise.all(promises);
+
             if (empRes.success) {
                 setEmployees(empRes.data);
             }
-            if (hqRes.success) {
+            // If hqRes exists (meaning we fetched it above), set it
+            if (hqRes && hqRes.success) {
                 setHQs(hqRes.data);
             }
         } catch (err) {
@@ -124,10 +137,26 @@ const EmployeeList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Employees</h2>
-                <Button onClick={openCreateModal}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Employee
-                </Button>
+                <div className="flex gap-4">
+                    {user?.role === 'admin' && (
+                        <select
+                            className="border rounded px-2 py-1"
+                            value={selectedHQ}
+                            onChange={(e) => setSelectedHQ(e.target.value)}
+                        >
+                            <option value="">All HQs</option>
+                            {hqs.map((hq: any) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <Button onClick={openCreateModal}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Employee
+                    </Button>
+                </div>
             </div>
 
             <Table
@@ -308,8 +337,9 @@ const EmployeeList: React.FC = () => {
                         </form>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

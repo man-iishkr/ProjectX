@@ -50,3 +50,36 @@ exports.createRoute = async (req, res, next) => {
         next(err);
     }
 };
+// @desc    Search routes by name (for autocomplete)
+// @route   GET /api/v1/routes/search
+// @access  Private
+exports.searchRoutes = async (req, res, next) => {
+    try {
+        const { query, hq } = req.query;
+
+        if (!query) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        // Build filter
+        const filter = {
+            name: { $regex: query, $options: 'i' } // Case-insensitive regex
+        };
+
+        // If HQ is provided, filter by HQ. If not, and user is not admin, use their HQ.
+        if (hq) {
+            filter.hq = hq;
+        } else if (req.user.role !== 'admin') {
+            filter.hq = req.user.hq;
+        }
+
+        const routes = await Route.find(filter).limit(10).select('name code _id');
+
+        res.status(200).json({
+            success: true,
+            data: routes
+        });
+    } catch (err) {
+        next(err);
+    }
+};

@@ -9,7 +9,7 @@ connectDB();
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('Environment loaded (v2).');
+  console.log('Environment loaded (v3.17 - MapmyIndia Auth Debug).');
 });
 
 process.on('unhandledRejection', (err, promise) => {

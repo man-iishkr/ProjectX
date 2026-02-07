@@ -1,23 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getChemists, deleteChemist } from '../../api/chemist.api';
+import { getHQs } from '../../api/hq.api';
+import { useAuth } from '../../context/AuthContext';
 import ChemistForm from './ChemistForm';
 
 const ChemistList: React.FC = () => {
+    const { user } = useAuth();
     const [chemists, setChemists] = useState<any[]>([]);
+    const [hqs, setHQs] = useState<any[]>([]);
+    const [selectedHQ, setSelectedHQ] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingChemist, setEditingChemist] = useState<any>(null);
 
     useEffect(() => {
-        loadChemists();
-    }, []);
+        loadData();
+    }, [selectedHQ]);
 
-    const loadChemists = async () => {
+    const loadData = async () => {
         try {
-            const res = await getChemists();
-            if (res.success) {
-                setChemists(res.data);
+            setLoading(true);
+            const promises: Promise<any>[] = [getChemists(selectedHQ)];
+            if (user?.role === 'admin' && hqs.length === 0) {
+                promises.push(getHQs());
+            }
+
+            const [chemistsRes, hqsRes] = await Promise.all(promises);
+
+            if (chemistsRes.success) {
+                setChemists(chemistsRes.data);
+            }
+            if (hqsRes && hqsRes.success) {
+                setHQs(hqsRes.data);
             }
         } catch (err) {
             console.error(err);
@@ -29,7 +44,7 @@ const ChemistList: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure?')) {
             await deleteChemist(id);
-            loadChemists();
+            loadData();
         }
     };
 
@@ -44,7 +59,7 @@ const ChemistList: React.FC = () => {
     };
 
     const handleFormSuccess = () => {
-        loadChemists();
+        loadData();
     };
 
     if (loading) return <div>Loading...</div>;
@@ -53,12 +68,28 @@ const ChemistList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Chemists</h2>
-                <button
-                    onClick={handleAdd}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                >
-                    Add Chemist
-                </button>
+                <div className="flex gap-4">
+                    {user?.role === 'admin' && (
+                        <select
+                            className="border rounded px-2 py-1"
+                            value={selectedHQ}
+                            onChange={(e) => setSelectedHQ(e.target.value)}
+                        >
+                            <option value="">All HQs</option>
+                            {hqs.map((hq: any) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <button
+                        onClick={handleAdd}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                        Add Chemist
+                    </button>
+                </div>
             </div>
 
             <Table

@@ -5,15 +5,17 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
 
 const HQList: React.FC = () => {
     const [hqs, setHQs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<any>({
         name: '',
         location: '',
+        coordinates: null,
         state: '',
         password: '',
         employeeStrength: '',
@@ -64,6 +66,7 @@ const HQList: React.FC = () => {
             const submitData = {
                 name: formData.name,
                 location: formData.location,
+                coordinates: formData.coordinates,
                 state: formData.state,
                 password: formData.password,
                 ...(formData.employeeStrength && { employeeStrength: Number(formData.employeeStrength) }),
@@ -81,6 +84,7 @@ const HQList: React.FC = () => {
                 setFormData({
                     name: '',
                     location: '',
+                    coordinates: null,
                     state: '',
                     password: '',
                     employeeStrength: '',
@@ -156,13 +160,23 @@ const HQList: React.FC = () => {
 
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Location</label>
-                                <Input
-                                    name="location"
-                                    value={formData.location}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Address"
-                                />
+                                <div className="relative">
+                                    <MapmyIndiaSearch
+                                        value={formData.location}
+                                        onSelect={(address: string, lat?: number, lng?: number) => {
+                                            setFormData((prev: any) => ({
+                                                ...prev,
+                                                location: address,
+                                                coordinates: (lat && lng) ? {
+                                                    type: 'Point',
+                                                    coordinates: [lng, lat]
+                                                } : null
+                                            }));
+                                        }}
+                                        placeholder="Search HQ Address..."
+                                        className="w-full"
+                                    />
+                                </div>
                             </div>
 
                             <div>

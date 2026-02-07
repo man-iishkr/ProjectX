@@ -7,8 +7,20 @@ const HQSchema = new mongoose.Schema({
         unique: true
     },
     location: {
-        type: String, // Address or description
+        type: String, // String Address
         required: [true, 'Please add a location']
+    },
+    // GeoJSON Point for Mapping/Radius Search
+    coordinates: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number], // [lng, lat]
+            index: '2dsphere'
+        }
     },
     state: {
         type: String,

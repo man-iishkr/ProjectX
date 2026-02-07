@@ -8,6 +8,8 @@ exports.getStockists = async (req, res, next) => {
         let query = {};
         if (req.user.role !== 'admin') {
             query.hq = req.user.hq;
+        } else if (req.query.hq) {
+            query.hq = req.query.hq;
         }
 
         const stockists = await Stockist.find(query).populate('hq', 'name');

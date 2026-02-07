@@ -37,8 +37,11 @@ const DoctorSchema = new mongoose.Schema({
     },
     clinicAddress: {
         type: String,
-        required: [true, 'Please add clinic address']
+        required: [true, 'Please add clinic address'] // Full formatted address
     },
+    city: String,
+    state: String,
+    pincode: String,
     residentialAddress: {
         type: String
     },

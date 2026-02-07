@@ -1,7 +1,8 @@
 import api from './axios';
 
-export const getStockists = async () => {
-    const { data } = await api.get('/stockists');
+export const getStockists = async (hqId?: string) => {
+    const params = hqId ? { hq: hqId } : {};
+    const { data } = await api.get('/stockists', { params });
     return data;
 };
 

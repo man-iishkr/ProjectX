@@ -1,75 +1,364 @@
 const axios = require('axios');
 
-// Cache token locally to avoid hitting limit
+// In-memory cache for token
 let cachedToken = null;
 let tokenExpiry = null;
 
-// @desc    Proxy MapmyIndia Places Search (AutoSuggest)
-// @route   GET /api/v1/mappls/search
-// @access  Private
-exports.searchPlaces = async (req, res, next) => {
+// Helper to get Valid Token
+const getAccessToken = async () => {
+    // Check cache
+    if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
+        console.log('Using cached MapmyIndia token (expires in', Math.floor((tokenExpiry - Date.now()) / 1000), 'seconds)');
+        return cachedToken;
+    }
+
+    const clientId = process.env.MAPPLS_CLIENT_ID;
+    const clientSecret = process.env.MAPPLS_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+        throw new Error('MapmyIndia Credentials (CLIENT_ID/SECRET) not configured');
+    }
+
+    console.log('Generating new MapmyIndia OAuth token...');
+    const tokenUrl = 'https://outpost.mapmyindia.com/api/security/oauth/token';
+
     try {
-        const { query } = req.query;
-        const apiKey = process.env.MAPPLS_API_KEY;
+        const response = await axios.post(tokenUrl,
+            new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: clientId,
+                client_secret: clientSecret
+            }),
+            {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            }
+        );
 
-        if (!apiKey) {
-            return res.status(500).json({ success: false, error: 'MapmyIndia API Key not configured' });
-        }
+        const { access_token, expires_in } = response.data;
+        cachedToken = access_token;
+        // Expire 5 mins early just to be safe
+        tokenExpiry = Date.now() + (expires_in * 1000) - (5 * 60 * 1000);
 
-        if (!query) {
-            return res.status(400).json({ success: false, error: 'Query parameter required' });
-        }
+        console.log('✓ MapmyIndia token generated successfully (expires in', expires_in, 'seconds)');
+        console.log('Token preview:', access_token.substring(0, 20) + '...');
 
-        // Using the Legacy / REST API endpoint structure which typically uses the key in the path
-        // URL: https://apis.mapmyindia.com/advancedmaps/v1/<key>/autosuggest?q=<query>
-        const url = `https://apis.mapmyindia.com/advancedmaps/v1/${apiKey}/autosuggest`;
-
-        const response = await axios.get(url, {
-            params: { q: query }
-        });
-
-        res.status(200).json({ success: true, data: response.data.suggestedLocations || [] });
-
-    } catch (err) {
-        console.error('Mappls Proxy Error:', err.message);
-        if (err.response) {
-            console.error('Mappls Response Status:', err.response.status);
-            console.error('Mappls Response Data:', JSON.stringify(err.response.data));
-            return res.status(err.response.status).json({
-                success: false,
-                error: err.response.data || 'MapmyIndia API Error',
-                details: err.message
-            });
-        }
-        res.status(500).json({ success: false, error: 'Failed to fetch location suggestions', details: err.message });
+        return cachedToken;
+    } catch (error) {
+        console.error('✗ Mappls Token Gen Error:', error.response?.status, error.response?.data || error.message);
+        throw error;
     }
 };
 
-// @desc    Proxy MapmyIndia Place Details (Reverse Geo / eLoc)
-// @route   GET /api/v1/mappls/details
+// @desc    Get MapmyIndia Access Token (For Frontend SDKs)
+// @route   GET /api/v1/mappls/token
 // @access  Private
-exports.getPlaceDetails = async (req, res, next) => {
+exports.getToken = async (req, res, next) => {
     try {
-        const { eloc } = req.query;
-        const apiKey = process.env.MAPPLS_API_KEY;
+        const token = await getAccessToken();
+        res.status(200).json({ success: true, access_token: token });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Failed to generate token' });
+    }
+};
 
-        if (!apiKey || !eloc) {
-            return res.status(400).json({ success: false, error: 'API Key or eLoc missing' });
+const digipin = require('digipin');
+
+// @desc    Proxy AutoSuggest (Using Backend Token)
+// @route   GET /api/v1/mappls/search
+exports.searchPlaces = async (req, res, next) => {
+    try {
+        const { query, location } = req.query; // location = "lat,lng" for bias
+
+        if (!query) {
+            // Return empty list if no query, prevent crash
+            return res.status(200).json({ success: true, data: [] });
         }
 
-        // Place Details API
-        // https://apis.mapmyindia.com/advancedmaps/v1/<key>/place_detail?place_id=<eLoc>
-        const url = `https://apis.mapmyindia.com/advancedmaps/v1/${apiKey}/place_detail`;
+        // Check for DigiPin (10 chars, typically alphanumeric/dashes depending on format)
+        // Standard DigiPin is often X-Y-Z format or continuous. 
+        // Let's assume input might be continuous or hyphenated.
+        // The library usually expects raw string? Let's try.
+        // The library decode function usually takes the pin.
+
+        // Clean query to remove spaces/dashes for check
+        const cleanQuery = query.replace(/[^a-zA-Z0-9]/g, '');
+
+        // DigiPin Verification logic (Simple length check for now, can be improved)
+        if (cleanQuery.length === 10) {
+            try {
+                const decoded = await digipin.decode(cleanQuery); // Attempt decode
+                if (decoded && decoded.latitude && decoded.longitude) {
+                    console.log('DigiPin Decoded:', cleanQuery, decoded);
+                    return res.status(200).json({
+                        success: true,
+                        data: [{
+                            eLoc: cleanQuery, // Use DigiPin as ID
+                            placeName: `DigiPin: ${query}`,
+                            placeAddress: `Lat: ${decoded.latitude}, Lng: ${decoded.longitude}`,
+                            latitude: decoded.latitude,
+                            longitude: decoded.longitude,
+                            type: 'DigiPin'
+                        }]
+                    });
+                }
+            } catch (dpError) {
+                // Not a valid DigiPin, proceed to normal search
+                // console.log('Not a DigiPin:', dpError.message);
+            }
+        }
+
+        const token = await getAccessToken();
+
+        // Atlas AutoSuggest URL
+        // Added pod=City to potentially get more details, and region=IND
+        let url = `https://atlas.mapmyindia.com/api/places/search/json?query=${encodeURIComponent(query)}&region=IND`;
+        if (location) {
+            url += `&location=${location}`; // &pod=City removed as it might restrict results too much
+        }
 
         const response = await axios.get(url, {
-            params: { place_id: eloc }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // The structure might vary, usually response.data.results[0]
-        res.status(200).json({ success: true, data: response.data.results?.[0] || response.data });
+        res.status(200).json({ success: true, data: response.data.suggestedLocations || [] });
+    } catch (err) {
+        console.error('✗ Mappls Search Proxy Error:', err.response?.status, err.message);
+        if (err.response?.status === 403) {
+            console.error('403 Forbidden - Token might be invalid. Response:', err.response?.data);
+            // Force token refresh on next request
+            cachedToken = null;
+            tokenExpiry = null;
+        }
+        // Do not crash, return empty list
+        res.status(200).json({ success: false, data: [], error: err.message });
+    }
+};
+
+// @desc    Proxy Geocode / Reverse Geocode / Place Detail
+exports.getPlaceDetails = async (req, res, next) => {
+    try {
+        const { eloc, lat, lng, address } = req.query; // Added address
+        const token = await getAccessToken();
+
+        let data = null;
+
+        // 1. Try DigiPin (Offline Decode)
+        if (eloc && eloc.length >= 10) { // DigiPin is usually 10 chars
+            try {
+                const cleanEloc = eloc.replace(/[^a-zA-Z0-9]/g, '');
+                if (cleanEloc.length === 10) {
+                    const decoded = await digipin.decode(cleanEloc);
+                    if (decoded && decoded.latitude) {
+                        console.log('DigiPin Details Resolved:', decoded);
+                        return res.status(200).json({
+                            success: true,
+                            data: {
+                                eLoc: eloc,
+                                latitude: decoded.latitude,
+                                longitude: decoded.longitude,
+                                placeName: `DigiPin: ${eloc}`,
+                                placeAddress: `Lat: ${decoded.latitude}, Lng: ${decoded.longitude}`
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                // Ignore, treat as normal eLoc
+            }
+        }
+
+        // 2. Try eLoc Resource (Most precise)
+        if (eloc) {
+            try {
+                // Try 'eloc' parameter based endpoint (Legacy/Standard Atlas)
+                // Note: The previous attempt with path param /places/${eloc} failed with 404.
+                // Let's try the direct eloc query param if available or default to search with pod
+
+                // Strategy: Use the 'place_detail' endpoint if we can find it, 
+                // BUT 'search' with 'pod' might work? No.
+                // Let's try: https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}
+                const url = `https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}`;
+                console.log('Mappls eLoc Request:', url);
+                const response = await axios.get(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                data = response.data;
+
+            } catch (eLocError) {
+                console.error('Mappls eLoc Lookup Failed:', eLocError.message);
+                if (eLocError.response) {
+                    console.error('eLoc Status:', eLocError.response.status);
+                    console.error('eLoc Data:', JSON.stringify(eLocError.response.data));
+                }
+                // Fallback to Geocoding if address is provided
+                if (address) {
+                    console.log('Falling back to Geocoding for address:', address);
+                    try {
+                        const geoUrl = `https://atlas.mapmyindia.com/api/places/geocode?address=${encodeURIComponent(address)}`;
+                        const geoRes = await axios.get(geoUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                        console.log('Geocode Fallback Response:', JSON.stringify(geoRes.data));
+
+                        if (geoRes.data.copResults) {
+                            data = geoRes.data.copResults;
+
+                            // CRITICAL: copResults has eLoc but NO coordinates
+                            // We need to use the eLoc to fetch coordinates from Place Detail API
+                            if (data.eLoc) {
+                                console.log('Geocode returned eLoc:', data.eLoc, '- Fetching coordinates from Place Detail API...');
+                                try {
+                                    // Use the textsearch endpoint which returns coordinates
+                                    const detailUrl = `https://atlas.mapmyindia.com/api/places/textsearch/json?query=${data.eLoc}&pod=eLoc`;
+                                    const detailRes = await axios.get(detailUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+
+                                    if (detailRes.data && detailRes.data.suggestedLocations && detailRes.data.suggestedLocations.length > 0) {
+                                        const location = detailRes.data.suggestedLocations[0];
+                                        console.log('Place Detail Response:', JSON.stringify(location));
+
+                                        // Extract coordinates from the detail response
+                                        if (location.latitude || location.eLat) {
+                                            data.latitude = location.latitude || location.eLat;
+                                            data.longitude = location.longitude || location.eLng;
+                                            console.log('Extracted coordinates from Place Detail:', data.latitude, data.longitude);
+                                        }
+                                    }
+                                } catch (detailErr) {
+                                    console.error('Place Detail API failed:', detailErr.message);
+                                }
+                            }
+                        } else {
+                            data = geoRes.data.suggestedLocations?.[0] || geoRes.data.results?.[0];
+                        }
+                    } catch (geoErr) {
+                        console.error('Mappls Geocode Error:', geoErr.message);
+                    }
+                }
+            }
+        }
+
+        // 3. Final Fallback: Nominatim (OpenStreetMap)
+        // If we still don't have data OR data is missing coordinates
+        let hasCoords = data && (data.latitude || data.lat || (data.geometry && data.geometry.location));
+
+        if ((!data || !hasCoords) && address) {
+            console.log('Mappls failed to return coords. Starting Nominatim (OSM) Fallback Strategy...');
+
+            const searchNominatim = async (queryAddress) => {
+                try {
+                    console.log('Nominatim Querying:', queryAddress);
+                    const osmRes = await axios.get(`https://nominatim.openstreetmap.org/search`, {
+                        params: {
+                            q: queryAddress,
+                            format: 'json',
+                            limit: 1,
+                            addressdetails: 1
+                        },
+                        headers: { 'User-Agent': 'CricketProjectX/1.0' }
+                    });
+                    return osmRes.data && osmRes.data.length > 0 ? osmRes.data[0] : null;
+                } catch (e) {
+                    console.error('Nominatim error for:', queryAddress, e.message);
+                    return null;
+                }
+            };
+
+            // Strategy 1: Full Address
+            let osmData = await searchNominatim(address);
+
+            // Strategy 2: Locality + City (if MapmyIndia gave us partial details but no coords)
+            if (!osmData && data && (data.locality || data.city)) {
+                const fallbackQuery = [data.locality, data.city, data.state].filter(Boolean).join(', ');
+                if (fallbackQuery && fallbackQuery !== address) {
+                    console.log('Nominatim Strategy 2 (Locality):', fallbackQuery);
+                    osmData = await searchNominatim(fallbackQuery);
+                }
+            }
+
+            // Strategy 3: City + State (Last Resort)
+            if (!osmData && data && data.city) {
+                const cityQuery = [data.city, data.state].filter(Boolean).join(', ');
+                if (cityQuery) {
+                    console.log('Nominatim Strategy 3 (City Only):', cityQuery);
+                    osmData = await searchNominatim(cityQuery);
+                }
+            }
+
+            // Strategy 4: Raw Parse of Address String (if MapmyIndia yielded nothing)
+            if (!osmData && address) {
+                const parts = address.split(',').map(p => p.trim());
+                if (parts.length > 2) {
+                    const simpleQuery = parts.slice(-3).join(', ');
+                    if (simpleQuery) {
+                        console.log('Nominatim Strategy 4 (Tail Address):', simpleQuery);
+                        osmData = await searchNominatim(simpleQuery);
+                    }
+                }
+            }
+
+            if (osmData) {
+                console.log('Nominatim Success:', osmData.lat, osmData.lon);
+                data = {
+                    ...data,
+                    latitude: parseFloat(osmData.lat),
+                    longitude: parseFloat(osmData.lon),
+                    placeName: data?.placeName || data?.poi || osmData.display_name.split(',')[0],
+                    formattedAddress: data?.formattedAddress || osmData.display_name,
+                    eLoc: data?.eLoc || `OSM-${osmData.place_id}`,
+                    source: 'Nominatim',
+                    confidence: 'High'
+                };
+            } else {
+                console.log('Nominatim All Strategies Failed.');
+            }
+        }
+
+        // 4. Reverse Geocode (if lat/lng provided and no data yet)
+        if (!data && lat && lng) {
+            const url = `https://atlas.mapmyindia.com/api/places/rev_geocode?lat=${lat}&lng=${lng}`;
+            const response = await axios.get(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            data = response.data.results?.[0];
+        }
+
+        // Normalize Data for Frontend
+        if (data) {
+            // Ensure latitude/longitude are present in standard fields
+            if (!data.latitude && !data.lat) {
+                // Try to find them in nested objects if present
+                if (data.geometry && data.geometry.location) {
+                    data.latitude = data.geometry.location.lat;
+                    data.longitude = data.geometry.location.lng;
+                }
+            }
+            // If we have 'lat', copy to 'latitude' for consistency
+            if (data.lat && !data.latitude) data.latitude = data.lat;
+            if (data.lng && !data.longitude) data.longitude = data.lng;
+
+            // Generate DigiPin for the found coordinates
+            if (data.latitude && data.longitude) {
+                try {
+                    const generatedPin = await digipin.encode(data.latitude, data.longitude);
+                    if (generatedPin) {
+                        data.digipin = generatedPin;
+                        console.log('Generated DigiPin:', generatedPin);
+                    }
+                } catch (genError) {
+                    console.error('DigiPin Generation Failed:', genError.message);
+                }
+            }
+
+            // Debug Log the final normalized data important fields
+            console.log('Normalized Mappls Data:', JSON.stringify({
+                eLoc: data.eLoc,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                digipin: data.digipin,
+                placeName: data.placeName || data.poi
+            }));
+
+            res.status(200).json({ success: true, data: data });
+        } else {
+            res.status(404).json({ success: false, error: 'Location details not found' });
+        }
 
     } catch (err) {
         console.error('Mappls Details Proxy Error:', err.message);
-        res.status(500).json({ success: false, error: 'Failed to fetch place details' });
+        res.status(500).json({ success: false, error: 'Details failed' });
     }
 };

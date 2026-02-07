@@ -13,16 +13,18 @@ interface MapmyIndiaSearchProps {
     onSelect: (address: string, lat?: number, lng?: number, eLoc?: string) => void;
     placeholder?: string;
     className?: string;
+    locationBias?: string; // "lat,lng"
 }
 
 const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
     value = '',
     onSelect,
     placeholder = "Search location...",
-    className = ""
+    className = "",
+    locationBias
 }) => {
     const [query, setQuery] = useState(value);
-    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -45,14 +47,25 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
 
     const handleSearch = async (text: string) => {
         setQuery(text);
+        // Only search if user typed > 2 chars
         if (text.length > 2) {
             setLoading(true);
-            const results = await searchPlaces(text);
-            if (results && Array.isArray(results)) {
-                setSuggestions(results);
-                setIsOpen(true);
+            try {
+                // Pass locationBias if available
+                const results = await searchPlaces(text, locationBias);
+                if (results && Array.isArray(results)) {
+                    setSuggestions(results);
+                    setIsOpen(true);
+                } else {
+                    setSuggestions([]);
+                    setIsOpen(false);
+                }
+            } catch (err) {
+                console.error(err);
+                setSuggestions([]);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         } else {
             setSuggestions([]);
             setIsOpen(false);
@@ -67,11 +80,21 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
 
         try {
             // Get Coords
-            const details = await getPlaceDetails(suggestion.eLoc);
+            const details = await getPlaceDetails(suggestion.eLoc, fullAddress);
+            console.log('Place Details:', details); // Debug Log
+
             if (details) {
-                const lat = details.latitude || details.lat;
-                const lng = details.longitude || details.lng;
-                onSelect(fullAddress, lat, lng, suggestion.eLoc);
+                const lat = details.latitude || details.lat || (details.geometry?.location?.lat); // Try multiple formats
+                const lng = details.longitude || details.lng || (details.geometry?.location?.lng);
+
+                console.log('Extracted Lat/Lng:', lat, lng); // Debug Log
+
+                let finalAddress = fullAddress;
+                if (details.digipin) {
+                    finalAddress += ` (DigiPin: ${details.digipin})`;
+                }
+
+                onSelect(finalAddress, lat, lng, suggestion.eLoc);
             } else {
                 // Fallback if details fail, just return string
                 onSelect(fullAddress);

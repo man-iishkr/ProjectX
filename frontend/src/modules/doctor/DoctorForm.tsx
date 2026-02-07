@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createDoctor, updateDoctor } from '../../api/doctor.api';
 import { getHQs } from '../../api/hq.api';
 import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
+import HybridRouteSearch from '../../components/HybridRouteSearch';
+import { getReverseGeoCode } from '../../api/mappls.api';
 import { useAuth } from '../../context/AuthContext';
 
 interface DoctorFormProps {
@@ -22,6 +24,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         speciality: '',
         hq: user?.role === 'hq' ? user.hq : '',
         clinicAddress: '',
+        city: '',
+        state: '',
+        pincode: '',
         residentialAddress: '',
         class: 'General',
         frequency: 1,
@@ -59,10 +64,32 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         }
     };
 
-    const handleLocationSelect = (address: string, lat?: number, lng?: number) => {
+    const handleLocationSelect = async (address: string, lat?: number, lng?: number) => {
+        // State updates
+        let newCity = formData.city;
+        let newState = formData.state;
+        let newPincode = formData.pincode;
+
+        if (lat && lng) {
+            // Auto-fill via Reverse Geocoding
+            try {
+                const details = await getReverseGeoCode(lat, lng);
+                if (details) {
+                    newCity = details.city || details.village || details.district || '';
+                    newState = details.state || '';
+                    newPincode = details.pincode || '';
+                }
+            } catch (e) {
+                console.error('RevGeo Failed', e);
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
             clinicAddress: address,
+            city: newCity,
+            state: newState,
+            pincode: newPincode,
             location: (lat && lng) ? {
                 type: 'Point',
                 coordinates: [lng, lat]
@@ -133,11 +160,33 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Route From *</label>
-                        <input name="routeFrom" value={formData.routeFrom} onChange={handleChange} className="w-full border p-2 rounded" required placeholder="Start Point" />
+                        <HybridRouteSearch
+                            value={formData.routeFrom}
+                            onSelect={(address) => setFormData(prev => ({ ...prev, routeFrom: address }))}
+                            placeholder="Start Point"
+                            className="w-full"
+                            hqId={formData.hq} // Filter local routes by HQ
+                            locationBias={
+                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                    : undefined
+                            }
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Route To *</label>
-                        <input name="routeTo" value={formData.routeTo} onChange={handleChange} className="w-full border p-2 rounded" required placeholder="End Point" />
+                        <HybridRouteSearch
+                            value={formData.routeTo}
+                            onSelect={(address) => setFormData(prev => ({ ...prev, routeTo: address }))}
+                            placeholder="End Point"
+                            className="w-full"
+                            hqId={formData.hq} // Filter local routes by HQ
+                            locationBias={
+                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                    : undefined
+                            }
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Area *</label>
@@ -171,11 +220,41 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                             onSelect={handleLocationSelect}
                             placeholder="Search Clinic Location..."
                             className="w-full"
+                            locationBias={
+                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                    : undefined
+                            }
                         />
                         {formData.location?.coordinates[0] !== 0 && (
-                            <p className="text-xs text-green-600 mt-1">Location Coordinates Captured</p>
+                            <div className="flex gap-2 mt-2">
+                                <div className="text-xs">
+                                    <span className="font-semibold">Start Lat:</span> {formData.location.coordinates[1]}
+                                </div>
+                                <div className="text-xs">
+                                    <span className="font-semibold">Start Long:</span> {formData.location.coordinates[0]}
+                                </div>
+                                <div className="text-xs text-green-600 font-bold ml-2">
+                                    (Exact Location Captured)
+                                </div>
+                            </div>
                         )}
                     </div>
+
+                    {/* Auto-filled Fields */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">City</label>
+                        <input name="city" value={formData.city} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">State</label>
+                        <input name="state" value={formData.state} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Pincode</label>
+                        <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded" />
+                    </div>
+
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium mb-1">Residential Address</label>
                         <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded" />

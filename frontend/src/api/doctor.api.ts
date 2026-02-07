@@ -1,7 +1,8 @@
 import api from './axios';
 
-export const getDoctors = async () => {
-    const { data } = await api.get('/doctors');
+export const getDoctors = async (hqId?: string) => {
+    const params = hqId ? { hq: hqId } : {};
+    const { data } = await api.get('/doctors', { params });
     return data;
 };
 
