@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { MapPin, CheckCircle, XCircle, Loader2, Navigation } from 'lucide-react';
 import { getDoctors } from '../../api/doctor.api';
-import { useAuth } from '../../context/AuthContext';
+// import { useAuth } from '../../context/AuthContext';
 
 // Haversine formula to calculate distance in meters
 const getDistanceFromLatLonInM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -24,7 +24,8 @@ const deg2rad = (deg: number) => {
 };
 
 const ReportCall: React.FC = () => {
-    const { user } = useAuth();
+    // const { user } = useAuth();
+    // const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
     const [doctors, setDoctors] = useState<any[]>([]);
     const [selectedDoctorId, setSelectedDoctorId] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
@@ -34,7 +35,7 @@ const ReportCall: React.FC = () => {
     const [verified, setVerified] = useState(false);
     const [distance, setDistance] = useState<number | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
-    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    // const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
 
     useEffect(() => {
         loadDoctors();
@@ -80,7 +81,7 @@ const ReportCall: React.FC = () => {
                 (position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
-                    setUserLocation({ lat: userLat, lng: userLng });
+                    // setUserLocation({ lat: userLat, lng: userLng });
 
                     const docLng = selectedDoctor.location.coordinates[0];
                     const docLat = selectedDoctor.location.coordinates[1];

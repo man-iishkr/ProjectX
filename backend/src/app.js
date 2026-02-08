@@ -55,7 +55,7 @@ app.use('/api/v1/operations', require('./modules/stockist/stockist_target.routes
 app.use('/api/v1/inventory', require('./modules/inventory/inventory.routes'));
 
 // New modules
-app.use('/api/v1/leave', require('./modules/leave/leave.routes'));
+app.use('/api/v1/leaves', require('./modules/leave/leave.routes'));
 app.use('/api/v1/analytics', require('./modules/analytics/analytics.routes'));
 app.use('/api/v1/salary', require('./modules/salary/salary.routes'));
 app.use('/api/v1/stockists', require('./modules/stockist/stockist.routes'));

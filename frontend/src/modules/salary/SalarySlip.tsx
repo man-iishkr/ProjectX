@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { X, Printer, Download } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
 interface SalarySlipProps {

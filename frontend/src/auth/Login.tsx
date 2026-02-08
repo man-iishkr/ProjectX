@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { User, Shield } from 'lucide-react';
 
-type LoginMode = 'employee' | 'admin';
+type LoginMode = 'hq' | 'admin';
 
 const Login: React.FC = () => {
-    const [mode, setMode] = useState<LoginMode>('employee');
+    const [mode, setMode] = useState<LoginMode>('admin');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -81,20 +81,6 @@ const Login: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setMode('employee');
-                                    setError('');
-                                }}
-                                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-all ${mode === 'employee'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-slate-600 hover:text-slate-900'
-                                    }`}
-                            >
-                                <User className="h-4 w-4" />
-                                Employee
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
                                     setMode('admin');
                                     setError('');
                                 }}
@@ -105,6 +91,20 @@ const Login: React.FC = () => {
                             >
                                 <Shield className="h-4 w-4" />
                                 Admin
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMode('hq');
+                                    setError('');
+                                }}
+                                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-all ${mode === 'hq'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                            >
+                                <User className="h-4 w-4" />
+                                HQ Manager
                             </button>
                         </div>
                     </CardHeader>
@@ -154,14 +154,25 @@ const Login: React.FC = () => {
                                 className="w-full bg-blue-600 hover:bg-blue-700 shadow-md transition-all duration-200"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Signing in...' : `Sign in as ${mode === 'admin' ? 'Admin' : 'Employee'}`}
+                                {isLoading ? 'Signing in...' : `Sign in as ${mode === 'admin' ? 'Admin' : 'HQ Manager'}`}
                             </Button>
 
-                            <p className="text-xs text-slate-400 text-center pt-4">
-                                {mode === 'admin'
-                                    ? 'Admin access required for system configuration'
-                                    : 'Contact your administrator for access'}
-                            </p>
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-slate-200"></div>
+                                </div>
+                                <div className="relative flex justify-center text-sm">
+                                    <span className="px-2 bg-white text-slate-500">Are you a Field Employee?</span>
+                                </div>
+                            </div>
+
+                            <Link
+                                to="/employee-login"
+                                className="flex w-full justify-center items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                            >
+                                <User className="h-4 w-4" />
+                                Go to Employee Login
+                            </Link>
                         </form>
                     </CardContent>
                 </Card>

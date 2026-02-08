@@ -7,7 +7,6 @@ import {
     User,
     Target,
     PhoneCall,
-    PlusCircle,
     Receipt,
     Calendar
 } from 'lucide-react';
@@ -17,7 +16,7 @@ const items = [
     { label: 'My Profile', path: '/employee/profile', icon: <User className="h-4 w-4" /> },
     { label: 'My Target', path: '/employee/target', icon: <Target className="h-4 w-4" /> },
     { label: 'Call Report', path: '/employee/calls', icon: <PhoneCall className="h-4 w-4" /> },
-    { label: 'Add Doctor', path: '/employee/add-doctor', icon: <PlusCircle className="h-4 w-4" /> },
+    { label: 'Doctors', path: '/employee/doctors', icon: <User className="h-4 w-4" /> },
     { label: 'Add Expense', path: '/employee/expenses', icon: <Receipt className="h-4 w-4" /> },
     { label: 'Leave Calendar', path: '/employee/leave', icon: <Calendar className="h-4 w-4" /> },
 ];

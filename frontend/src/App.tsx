@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Login from './auth/Login';
+import EmployeeLogin from './auth/EmployeeLogin';
 import AdminLayout from './layouts/AdminLayout';
 import HQLayout from './layouts/HQLayout';
 import EmployeeLayout from './layouts/EmployeeLayout';
@@ -11,7 +12,6 @@ import DoctorList from './modules/doctor/DoctorList';
 import Dashboard from './modules/dashboard/Dashboard';
 import ChemistList from './modules/chemist/ChemistList';
 import TargetList from './modules/target/TargetList';
-import Placeholder from './components/Placeholder';
 import ExpenseList from './modules/expense/ExpenseList';
 import Analytics from './modules/analytics/Analytics';
 import LeaveCalendar from './modules/leave/LeaveCalendar';
@@ -22,7 +22,10 @@ import InventoryList from './modules/inventory/InventoryList';
 import SalaryList from './modules/salary/SalaryList';
 import DataImport from './modules/admin-tools/DataImport';
 import CallReportList from './modules/callReport/CallReportList';
-import ReportCall from './modules/callReport/ReportCall';
+import EmployeeProfile from './modules/employee/EmployeeProfile';
+import MyExpenses from './modules/expense/MyExpenses';
+import LeaveList from './modules/leave/LeaveList';
+import AddDoctor from './modules/doctor/AddDoctor';
 
 // Protect Routes Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: any, allowedRoles: string[] }) => {
@@ -52,6 +55,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/employee-login" element={<EmployeeLogin />} />
       <Route path="/" element={<RootRedirect />} />
 
       {/* ADMIN ROUTES */}
@@ -105,8 +109,14 @@ const App: React.FC = () => {
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="calls" element={<ReportCall />} />
-        <Route path="*" element={<Placeholder title="Employee Page" />} />
+        <Route path="profile" element={<EmployeeProfile />} />
+        <Route path="target" element={<TargetList />} />
+        <Route path="calls" element={<CallReportList />} />
+        <Route path="add-doctor" element={<AddDoctor />} />
+        <Route path="doctors" element={<DoctorList />} />
+        <Route path="expenses" element={<MyExpenses />} />
+        <Route path="leave" element={<LeaveCalendar />} />
+        <Route path="*" element={<Dashboard />} /> {/* Fallback */}
       </Route>
 
     </Routes>

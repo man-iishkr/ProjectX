@@ -5,7 +5,12 @@ import { getHQs } from '../../api/hq.api';
 import DoctorForm from './DoctorForm';
 import { useAuth } from '../../context/AuthContext';
 
-const DoctorList: React.FC = () => {
+interface DoctorListProps {
+    hideAddButton?: boolean;
+    title?: string;
+}
+
+const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 'Doctors' }) => {
     const { user } = useAuth();
     const [doctors, setDoctors] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
@@ -74,7 +79,7 @@ const DoctorList: React.FC = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">Doctors</h2>
+                <h2 className="text-2xl font-semibold">{title}</h2>
                 <div className="flex gap-4">
                     {user?.role === 'admin' && (
                         <select
@@ -90,12 +95,14 @@ const DoctorList: React.FC = () => {
                             ))}
                         </select>
                     )}
-                    <button
-                        onClick={handleAdd}
-                        className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
-                    >
-                        Add Doctor
-                    </button>
+                    {!hideAddButton && (
+                        <button
+                            onClick={handleAdd}
+                            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded"
+                        >
+                            Add Doctor
+                        </button>
+                    )}
                 </div>
             </div>
 

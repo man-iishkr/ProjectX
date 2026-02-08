@@ -19,8 +19,12 @@ const TargetList: React.FC = () => {
     const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()]);
 
     useEffect(() => {
+        if (user?.role === 'employee' || user?.role === 'hq') {
+            const hqId = typeof user.hq === 'string' ? user.hq : user.hq?._id;
+            setSelectedHq(hqId);
+        }
         loadData();
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         processAndFilterData();

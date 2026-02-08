@@ -5,7 +5,7 @@ import { MapPin, Route as RouteIcon, Loader2 } from 'lucide-react';
 
 interface HybridRouteSearchProps {
     value?: string;
-    onSelect: (address: string) => void;
+    onSelect: (address: string, data?: any) => void;
     placeholder?: string;
     className?: string;
     hqId?: string; // To filter local routes
@@ -96,7 +96,7 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
     const handleSelectSuggestion = (s: any) => {
         setQuery(s.value);
         setIsOpen(false);
-        onSelect(s.value);
+        onSelect(s.value, s);
     };
 
     return (

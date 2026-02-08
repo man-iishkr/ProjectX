@@ -61,6 +61,12 @@ const DoctorSchema = new mongoose.Schema({
     phone: String,
     email: String,
 
+    // Distance for Travel Allowance (in km)
+    distance: {
+        type: Number,
+        default: 0
+    },
+
     // GeoJSON Point - making it optional if user doesn't have lat/lng immediately
     location: {
         type: {

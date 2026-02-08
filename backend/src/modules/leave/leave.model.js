@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const LeaveSchema = new mongoose.Schema({
     employee: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Employee',
+        ref: 'User',
         required: true
     },
     leaveType: {
@@ -44,22 +44,8 @@ const LeaveSchema = new mongoose.Schema({
     },
     attachments: [{
         type: String // URLs to uploaded documents
-    }],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-// Update updatedAt on save
-LeaveSchema.pre('save', function (next) {
-    this.updatedAt = Date.now();
-    next();
-});
+    }]
+}, { timestamps: true });
 
 // Virtual for leave duration in days
 LeaveSchema.virtual('durationDays').get(function () {

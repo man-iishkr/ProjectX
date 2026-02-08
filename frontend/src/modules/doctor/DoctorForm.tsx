@@ -3,16 +3,36 @@ import { createDoctor, updateDoctor } from '../../api/doctor.api';
 import { getHQs } from '../../api/hq.api';
 import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
 import HybridRouteSearch from '../../components/HybridRouteSearch';
-import { getReverseGeoCode } from '../../api/mappls.api';
+import { getReverseGeoCode, getPlaceDetails } from '../../api/mappls.api';
 import { useAuth } from '../../context/AuthContext';
+
+// Haversine formula to calculate distance (in km)
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return parseFloat(d.toFixed(2));
+};
+
+const deg2rad = (deg: number) => {
+    return deg * (Math.PI / 180);
+};
 
 interface DoctorFormProps {
     onClose: () => void;
     onSuccess: () => void;
     initialData?: any;
+    isModal?: boolean;
 }
 
-const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData }) => {
+const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData, isModal = true }) => {
     const { user } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
@@ -38,9 +58,14 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
             coordinates: [0, 0] // [lng, lat]
         },
         rejectedRemark: '',
-        approvalStatus: 'Pending'
+        approvalStatus: 'Pending',
+        distance: 0
     });
-    const [hqs, setHqs] = useState<any[]>([]);
+    const [hqs, setHQs] = useState<any[]>([]);
+    const [routeCoords, setRouteCoords] = useState<{
+        from: { lat: number, lng: number } | null,
+        to: { lat: number, lng: number } | null
+    }>({ from: null, to: null });
 
     useEffect(() => {
         loadHQs();
@@ -48,20 +73,100 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
             setFormData({
                 ...formData,
                 ...initialData,
-                hq: initialData.hq?._id || initialData.hq // Handle populated object or ID
+                hq: initialData.hq?._id || initialData.hq
             });
         }
     }, [initialData]);
+
+    useEffect(() => {
+        if (routeCoords.from && routeCoords.to) {
+            const dist = calculateDistance(routeCoords.from.lat, routeCoords.from.lng, routeCoords.to.lat, routeCoords.to.lng);
+            setFormData(prev => ({ ...prev, distance: dist }));
+        }
+    }, [routeCoords]);
 
     const loadHQs = async () => {
         try {
             const res = await getHQs();
             if (res.success) {
-                setHqs(res.data);
+                setHQs(res.data);
             }
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleRouteSelect = async (type: 'from' | 'to', address: string, data: any) => {
+        setFormData(prev => ({ ...prev, [type === 'from' ? 'routeFrom' : 'routeTo']: address }));
+
+        // Try to get coords
+        let lat = 0, lng = 0;
+        if (data?.eLoc) {
+            try {
+                const details = await getPlaceDetails(data.eLoc);
+                if (details) {
+                    lat = parseFloat(details.latitude);
+                    lng = parseFloat(details.longitude);
+                }
+            } catch (e) { console.error(e); }
+        } else if (data?.latitude && data?.longitude) {
+            lat = data.latitude;
+            lng = data.longitude;
+        }
+
+        if (lat && lng) {
+            setRouteCoords(prev => ({
+                ...prev,
+                [type]: { lat, lng }
+            }));
+        }
+    };
+
+    const [gettingLocation, setGettingLocation] = useState(false);
+
+    const matchLocationToAddress = async (lat: number, lng: number) => {
+        try {
+            const details = await getReverseGeoCode(lat, lng);
+            if (details) {
+                setFormData(prev => ({
+                    ...prev,
+                    city: details.city || details.village || details.district || prev.city,
+                    state: details.state || prev.state,
+                    pincode: details.pincode || prev.pincode,
+                }));
+            }
+        } catch (e) {
+            console.error('RevGeo Failed', e);
+        }
+    };
+
+    const captureLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        setGettingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setFormData(prev => ({
+                    ...prev,
+                    location: {
+                        type: 'Point',
+                        coordinates: [longitude, latitude]
+                    }
+                }));
+                matchLocationToAddress(latitude, longitude);
+                setGettingLocation(false);
+            },
+            (error) => {
+                console.error(error);
+                alert('Unable to retrieve your location');
+                setGettingLocation(false);
+            },
+            { enableHighAccuracy: true } // Important for "at the clinic" precision
+        );
     };
 
     const handleLocationSelect = async (address: string, lat?: number, lng?: number) => {
@@ -117,178 +222,197 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-card p-6 rounded-lg w-full max-w-4xl my-8">
-                <h2 className="text-xl font-bold mb-4">{initialData ? 'Edit Doctor' : 'Add Doctor'}</h2>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    const formContent = (
+        <div className={`bg-card p-6 rounded-lg w-full max-w-4xl ${isModal ? 'my-8' : 'border shadow-sm'}`}>
+            <h2 className="text-xl font-bold mb-4">{initialData ? 'Edit Doctor' : 'Add Doctor'}</h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                    {/* Basic Info */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Dr Name *</label>
-                        <input name="name" value={formData.name} onChange={handleChange} className="w-full border p-2 rounded" required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Dr Code</label>
-                        <input name="code" value={formData.code} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
+                {/* Basic Info */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">Dr Name *</label>
+                    <input name="name" value={formData.name} onChange={handleChange} className="w-full border p-2 rounded" required />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Dr Code</label>
+                    <input name="code" value={formData.code} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
 
-                    {/* Location */}
-                    {/* Location */}
-                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">HQ *</label>
-                            <select
-                                name="hq"
-                                value={formData.hq || (user?.role === 'hq' ? user.hq : '')}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded disabled:bg-gray-100"
-                                required
-                                disabled={user?.role === 'hq'}
-                            >
-                                <option value="">Select HQ</option>
-                                {hqs.map(hq => (
-                                    <option key={hq._id} value={hq._id}>{hq.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Date</label>
-                            <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded" />
-                        </div>
-                    </div>
-
+                {/* Location */}
+                <div className="md:col-span-2 grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Route From *</label>
-                        <HybridRouteSearch
-                            value={formData.routeFrom}
-                            onSelect={(address) => setFormData(prev => ({ ...prev, routeFrom: address }))}
-                            placeholder="Start Point"
-                            className="w-full"
-                            hqId={formData.hq} // Filter local routes by HQ
-                            locationBias={
-                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
-                                    : undefined
-                            }
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Route To *</label>
-                        <HybridRouteSearch
-                            value={formData.routeTo}
-                            onSelect={(address) => setFormData(prev => ({ ...prev, routeTo: address }))}
-                            placeholder="End Point"
-                            className="w-full"
-                            hqId={formData.hq} // Filter local routes by HQ
-                            locationBias={
-                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
-                                    : undefined
-                            }
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Area *</label>
-                        <input name="area" value={formData.area} onChange={handleChange} className="w-full border p-2 rounded" required />
-                    </div>
-
-                    {/* Professional Info */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Speciality *</label>
-                        <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded" required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Class</label>
-                        <select name="class" value={formData.class} onChange={handleChange} className="w-full border p-2 rounded">
-                            <option value="General">General</option>
-                            <option value="Core">Core</option>
-                            <option value="Super Core">Super Core</option>
-                            <option value="Important">Important</option>
+                        <label className="block text-sm font-medium mb-1">HQ *</label>
+                        <select
+                            name="hq"
+                            value={formData.hq || (user?.role === 'hq' ? user.hq : '')}
+                            onChange={handleChange}
+                            className="w-full border p-2 rounded disabled:bg-gray-100"
+                            required
+                            disabled={user?.role === 'hq'}
+                        >
+                            <option value="">Select HQ</option>
+                            {hqs.map(hq => (
+                                <option key={hq._id} value={hq._id}>{hq.name}</option>
+                            ))}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Frequency</label>
-                        <input type="number" name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border p-2 rounded" min="1" />
+                        <label className="block text-sm font-medium mb-1">Date</label>
+                        <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded" />
                     </div>
+                </div>
 
-                    {/* Contact - Addresses */}
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-1">Clinic Address *</label>
-                        <MapmyIndiaSearch
-                            value={formData.clinicAddress}
-                            onSelect={handleLocationSelect}
-                            placeholder="Search Clinic Location..."
-                            className="w-full"
-                            locationBias={
-                                hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                    ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
-                                    : undefined
-                            }
-                        />
-                        {formData.location?.coordinates[0] !== 0 && (
-                            <div className="flex gap-2 mt-2">
-                                <div className="text-xs">
-                                    <span className="font-semibold">Start Lat:</span> {formData.location.coordinates[1]}
+                <div>
+                    <label className="block text-sm font-medium mb-1">Route From *</label>
+                    <HybridRouteSearch
+                        value={formData.routeFrom}
+                        onSelect={(addr, data) => handleRouteSelect('from', addr, data)}
+                        placeholder="Start Point"
+                        className="w-full"
+                        hqId={formData.hq} // Filter local routes by HQ
+                        locationBias={
+                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                : undefined
+                        }
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Route To *</label>
+                    <HybridRouteSearch
+                        value={formData.routeTo}
+                        onSelect={(addr, data) => handleRouteSelect('to', addr, data)}
+                        placeholder="End Point"
+                        className="w-full"
+                        hqId={formData.hq} // Filter local routes by HQ
+                        locationBias={
+                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                : undefined
+                        }
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Area *</label>
+                    <input name="area" value={formData.area} onChange={handleChange} className="w-full border p-2 rounded" required />
+                </div>
+
+                {/* Professional Info */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">Speciality *</label>
+                    <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded" required />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Class</label>
+                    <select name="class" value={formData.class} onChange={handleChange} className="w-full border p-2 rounded">
+                        <option value="General">General</option>
+                        <option value="Core">Core</option>
+                        <option value="Super Core">Super Core</option>
+                        <option value="Important">Important</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Frequency</label>
+                    <input type="number" name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border p-2 rounded" min="1" />
+                </div>
+
+                {/* Contact - Addresses */}
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Clinic Address *</label>
+                    <MapmyIndiaSearch
+                        value={formData.clinicAddress}
+                        onSelect={handleLocationSelect}
+                        placeholder="Search Clinic Location..."
+                        className="w-full"
+                        locationBias={
+                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                                : undefined
+                        }
+                    />
+                    <div className="mt-2 flex items-center justify-between">
+                        {formData.location?.coordinates[0] !== 0 ? (
+                            <div className="flex gap-2 text-xs">
+                                <div className="bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 flex items-center">
+                                    <span className="font-semibold mr-1">Lat:</span> {formData.location.coordinates[1].toFixed(6)}
                                 </div>
-                                <div className="text-xs">
-                                    <span className="font-semibold">Start Long:</span> {formData.location.coordinates[0]}
+                                <div className="bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 flex items-center">
+                                    <span className="font-semibold mr-1">Lng:</span> {formData.location.coordinates[0].toFixed(6)}
                                 </div>
-                                <div className="text-xs text-green-600 font-bold ml-2">
-                                    (Exact Location Captured)
+                                <div className="text-green-600 font-bold flex items-center">
+                                    (Captured)
                                 </div>
                             </div>
+                        ) : (
+                            <div className="text-xs text-amber-600">Location not captured</div>
                         )}
-                    </div>
 
-                    {/* Auto-filled Fields */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">City</label>
-                        <input name="city" value={formData.city} onChange={handleChange} className="w-full border p-2 rounded" />
+                        <button
+                            type="button"
+                            onClick={captureLocation}
+                            disabled={gettingLocation}
+                            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1 transition-colors"
+                        >
+                            {gettingLocation ? 'Locating...' : '📍 Capture Reporting Location'}
+                        </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">State</label>
-                        <input name="state" value={formData.state} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Pincode</label>
-                        <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
+                </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-1">Residential Address</label>
-                        <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
+                {/* Auto-filled Fields */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">City</label>
+                    <input name="city" value={formData.city} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">State</label>
+                    <input name="state" value={formData.state} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Pincode</label>
+                    <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
 
-                    {/* Contact - Phones */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Mobile *</label>
-                        <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full border p-2 rounded" required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Phone</label>
-                        <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded" />
-                    </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Residential Address</label>
+                    <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
 
-                    {/* Admin Status */}
+                {/* Contact - Phones */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">Mobile *</label>
+                    <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full border p-2 rounded" required />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Phone</label>
+                    <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-1">Rejected Remark</label>
-                        <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded" placeholder="Reason for rejection (if any)" />
-                    </div>
+                {/* Admin Status */}
 
-                    <div className="md:col-span-2 flex justify-end gap-2 mt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded hover:bg-muted">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Doctor</button>
-                    </div>
-                </form>
-            </div >
-        </div >
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Rejected Remark</label>
+                    <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded" placeholder="Reason for rejection (if any)" />
+                </div>
+
+                <div className="md:col-span-2 flex justify-end gap-2 mt-4">
+                    {isModal && <button type="button" onClick={onClose} className="px-4 py-2 border rounded hover:bg-muted">Cancel</button>}
+                    <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Doctor</button>
+                </div>
+            </form>
+        </div>
     );
+
+    if (isModal) {
+        return (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                {formContent}
+            </div >
+        );
+    }
+    return formContent;
 };
 
 export default DoctorForm;

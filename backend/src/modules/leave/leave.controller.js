@@ -40,8 +40,15 @@ exports.getLeaveById = async (req, res) => {
 };
 
 // Create leave request
+const fs = require('fs');
+const path = require('path');
+
 exports.createLeave = async (req, res) => {
+    const logFile = path.join(__dirname, '../../../backend_debug.log');
+    const log = (msg) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+
     try {
+        log(`Creating Leave - Body: ${JSON.stringify(req.body)}`);
         const { employeeId, leaveType, startDate, endDate, reason, attachments } = req.body;
 
         // Validate dates
@@ -49,6 +56,7 @@ exports.createLeave = async (req, res) => {
             return res.status(400).json({ message: 'Start date must be before end date' });
         }
 
+        log('Instantiating Leave Model...');
         const leave = new Leave({
             employee: employeeId,
             leaveType,
@@ -58,11 +66,16 @@ exports.createLeave = async (req, res) => {
             attachments: attachments || []
         });
 
+        log('Saving Leave...');
         await leave.save();
+        log('Leave Saved. Populating...');
         await leave.populate('employee', 'name email employeeId');
+        log('Populated. Sending response.');
 
         res.status(201).json({ message: 'Leave request created', leave });
     } catch (error) {
+        log(`Error in createLeave: ${error.message} \nStack: ${error.stack}`);
+        console.error('Error in createLeave:', error);
         res.status(500).json({ message: 'Error creating leave', error: error.message });
     }
 };
@@ -119,6 +132,39 @@ exports.approveLeave = async (req, res) => {
         leave.approvedAt = Date.now();
 
         await leave.save();
+
+        // Update Salary Record (Leaves Count)
+        const startDate = new Date(leave.startDate);
+        const month = startDate.getMonth() + 1;
+        const year = startDate.getFullYear();
+
+        const Salary = require('../salary/salary.model');
+        const User = require('../auth/auth.model'); // To get base salary if creating new
+
+        // Calculate Days
+        const diffTime = Math.abs(new Date(leave.endDate) - new Date(leave.startDate));
+        const durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        let salary = await Salary.findOne({
+            employee: leave.employee._id || leave.employee, // Handle populated or ID
+            'period.month': month,
+            'period.year': year
+        });
+
+        if (!salary) {
+            const employee = await User.findById(leave.employee._id || leave.employee);
+            if (employee) {
+                salary = await Salary.create({
+                    employee: leave.employee._id || leave.employee,
+                    period: { month, year },
+                    baseSalary: employee.monthlyPay || 0,
+                    workingDays: { leaves: durationDays }
+                });
+            }
+        } else {
+            salary.workingDays.leaves += durationDays;
+            await salary.save();
+        }
         await leave.populate(['employee', 'approvedBy']);
 
         res.json({ message: 'Leave approved', leave });

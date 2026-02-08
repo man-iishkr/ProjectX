@@ -62,10 +62,69 @@ exports.createCallReport = async (req, res, next) => {
             distanceFromDoctor: distance
         });
 
+        // ---------------------------------------------------------
+        // SALARY & ATTENDANCE UPDATES
+        // ---------------------------------------------------------
+        if (isApproved) {
+            const today = new Date();
+            const month = today.getMonth() + 1;
+            const year = today.getFullYear();
+
+            const Salary = require('../salary/salary.model');
+            const User = require('../auth/auth.model');
+
+            let salary = await Salary.findOne({
+                employee: req.user.id,
+                'period.month': month,
+                'period.year': year
+            });
+
+            if (!salary) {
+                const employee = await User.findById(req.user.id);
+                if (employee) {
+                    salary = await Salary.create({
+                        employee: req.user.id,
+                        period: { month, year },
+                        baseSalary: employee.monthlyPay || 0
+                    });
+                }
+            }
+
+            if (salary) {
+                // 1. Mark Attendance (Present) if not already marked for today
+                // We check if workingDays.present was incremented today? 
+                // Difficult to track "today" specifically in a simple counter unless we log dates.
+                // Better approach: Check if this is the FIRST approved call of the day.
+                const callsTodayCount = await CallReport.countDocuments({
+                    employee: req.user.id,
+                    createdAt: { $gte: startOfDay, $lte: endOfDay },
+                    isApproved: true,
+                    _id: { $ne: callReport._id } // Exclude current one
+                });
+
+                if (callsTodayCount === 0) {
+                    // First successful call of the day -> Mark Present
+                    salary.workingDays.present += 1;
+                }
+
+                // 2. Travel Allowance (TA)
+                // Logic: "calculate distance * 10". 
+                // User said "if route is set from one location to other... road distance... multiplied by a fixed given cost"
+                // We stored this in doctor.distance (in km)
+                // Rate: Rs. 10 per km
+                if (doctor.distance && doctor.distance > 0) {
+                    const taAmount = doctor.distance * 10;
+                    salary.allowances.ta += taAmount;
+                }
+
+                await salary.save();
+            }
+        }
+
         res.status(201).json({
             success: true,
             data: callReport,
-            message: isApproved ? 'Call Report Approved' : `Call Report Submitted but Pending Approval (Distance: ${Math.round(distance)}m)`
+            message: isApproved ? 'Call Report Approved & Attendance Marked' : `Call Report Submitted but Pending Approval (Distance: ${Math.round(distance)}m)`
         });
     } catch (err) {
         next(err);

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { analyticsAPI, type DashboardSummary } from '../../api/analytics.api';
 import DashboardCalendar from './DashboardCalendar';
-import { Users, TrendingUp, Network, MapPin } from 'lucide-react';
+import { Users, TrendingUp, Network } from 'lucide-react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {
     Chart as ChartJS,

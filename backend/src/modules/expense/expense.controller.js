@@ -105,6 +105,36 @@ exports.updateExpenseStatus = async (req, res, next) => {
             if (amount) {
                 expense.amount = amount;
             }
+
+            // Update Salary Record
+            const expenseDate = new Date(expense.date);
+            const month = expenseDate.getMonth() + 1;
+            const year = expenseDate.getFullYear();
+
+            const Salary = require('../salary/salary.model');
+            const User = require('../auth/auth.model'); // To get base salary if creating new
+
+            let salary = await Salary.findOne({
+                employee: expense.employee._id,
+                'period.month': month,
+                'period.year': year
+            });
+
+            if (!salary) {
+                // Fetch user to get base details
+                const employee = await User.findById(expense.employee._id);
+                if (employee) {
+                    salary = await Salary.create({
+                        employee: expense.employee._id,
+                        period: { month, year },
+                        baseSalary: employee.monthlyPay || 0,
+                        approvedExpenses: expense.amount
+                    });
+                }
+            } else {
+                salary.approvedExpenses += expense.amount;
+                await salary.save();
+            }
         }
 
         await expense.save();

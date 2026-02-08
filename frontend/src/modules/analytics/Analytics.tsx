@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { analyticsAPI, type DashboardSummary } from '../../api/analytics.api';
-import { Users, Truck, Building2, TrendingUp, Calendar, Target } from 'lucide-react';
+import { Users, Building2, TrendingUp, Target } from 'lucide-react';
 import {
     Chart as ChartJS,
     CategoryScale,

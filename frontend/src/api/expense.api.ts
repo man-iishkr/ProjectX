@@ -5,6 +5,13 @@ export const getExpenses = async () => {
     return data;
 };
 
+export const createExpense = async (data: FormData) => {
+    const { data: res } = await api.post('/expenses', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res;
+};
+
 export const updateExpenseStatus = async (id: string, status: string, amount?: number) => {
     const { data } = await api.put(`/expenses/${id}`, { status, amount });
     return data;

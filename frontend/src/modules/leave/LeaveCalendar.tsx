@@ -5,15 +5,16 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { leaveAPI, type Leave } from '../../api/leave.api';
+import { getLeaves, approveLeave, rejectLeave, type Leave } from '../../api/leave.api';
 import { holidayAPI, type Holiday } from '../../api/holiday.api';
 import { PlusCircle, Check, X, Trash2, Calendar as CalendarIcon, ClipboardList, PartyPopper } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Table from '../../components/Table';
+import LeaveList from './LeaveList';
 
 const LeaveCalendar: React.FC = () => {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'calendar' | 'approvals' | 'holidays'>('calendar');
+    const [activeTab, setActiveTab] = useState<'calendar' | 'approvals' | 'holidays' | 'my-leaves'>('calendar');
     const [leaves, setLeaves] = useState<Leave[]>([]);
     const [holidays, setHolidays] = useState<Holiday[]>([]);
     const [loading, setLoading] = useState(true);
@@ -28,12 +29,14 @@ const LeaveCalendar: React.FC = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [leavesData, holidaysData] = await Promise.all([
-                leaveAPI.getAll(),
+            const [leavesRes, holidaysData] = await Promise.all([
+                getLeaves(),
                 holidayAPI.getAll()
             ]);
-            setLeaves(leavesData);
-            setHolidays(holidaysData);
+            if (leavesRes.success) {
+                setLeaves(leavesRes.data);
+            }
+            setHolidays(holidaysData); // Assuming holidayAPI returns data directly, need to check if consistent
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -43,7 +46,7 @@ const LeaveCalendar: React.FC = () => {
 
     const handleApprove = async (id: string) => {
         try {
-            await leaveAPI.approve(id);
+            await approveLeave(id);
             fetchData();
         } catch (error) {
             alert('Failed to approve leave');
@@ -54,7 +57,7 @@ const LeaveCalendar: React.FC = () => {
         const reason = prompt('Enter rejection reason:');
         if (reason) {
             try {
-                await leaveAPI.reject(id, reason);
+                await rejectLeave(id, reason);
                 fetchData();
             } catch (error) {
                 alert('Failed to reject leave');
@@ -87,18 +90,25 @@ const LeaveCalendar: React.FC = () => {
 
     // Transform data for calendar
     const getEvents = () => {
-        const leaveEvents = leaves.map(leave => ({
-            id: leave._id,
-            title: `${leave.employee?.name || 'Unknown'} - ${leave.leaveType}`,
-            start: leave.startDate,
-            end: leave.endDate,
-            backgroundColor:
-                leave.status === 'approved' ? '#22c55e' :
-                    leave.status === 'rejected' ? '#ef4444' :
-                        leave.status === 'cancelled' ? '#6b7280' :
-                            '#f59e0b',
-            borderColor: 'transparent'
-        }));
+        const leaveEvents = leaves.map(leave => {
+            // FullCalendar end date is exclusive, so we need to add 1 day to the inclusive end date stored in DB
+            const endDate = new Date(leave.endDate);
+            endDate.setDate(endDate.getDate() + 1);
+
+            return {
+                id: leave._id,
+                title: `${leave.employee?.name || 'Unknown'} - ${leave.leaveType}`,
+                start: leave.startDate,
+                end: endDate.toISOString().split('T')[0], // Ensure YYYY-MM-DD
+                allDay: true,
+                backgroundColor:
+                    leave.status === 'approved' ? '#22c55e' :
+                        leave.status === 'rejected' ? '#ef4444' :
+                            leave.status === 'cancelled' ? '#6b7280' :
+                                '#f59e0b',
+                borderColor: 'transparent'
+            };
+        });
 
         const holidayEvents = holidays.map(holiday => ({
             id: holiday._id,
@@ -118,8 +128,8 @@ const LeaveCalendar: React.FC = () => {
         <button
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${activeTab === id
-                    ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
         >
             <Icon className="h-4 w-4" />
@@ -135,6 +145,9 @@ const LeaveCalendar: React.FC = () => {
 
                 <div className="flex gap-1 overflow-x-auto">
                     <TabButton id="calendar" label="Calendar" icon={CalendarIcon} />
+                    {(user?.role === 'employee' || user?.role === 'hq') && (
+                        <TabButton id="my-leaves" label="My Leaves" icon={ClipboardList} />
+                    )}
                     {user?.role === 'admin' && (
                         <>
                             <TabButton id="approvals" label="Approve Requests" icon={ClipboardList} />
@@ -143,6 +156,16 @@ const LeaveCalendar: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* TAB CONTENT: MY LEAVES (Employee/HQ) */}
+            {activeTab === 'my-leaves' && (
+                <Card>
+                    <CardHeader><CardTitle>My Leave History</CardTitle></CardHeader>
+                    <CardContent>
+                        <LeaveList embedded={true} />
+                    </CardContent>
+                </Card>
+            )}
 
             {/* TAB CONTENT: CALENDAR */}
             {activeTab === 'calendar' && (

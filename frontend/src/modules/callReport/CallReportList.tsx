@@ -39,6 +39,8 @@ const CallReportList: React.FC = () => {
             } else if (user?.role === 'hq') {
                 const empRes = await getEmployees(); // Should filter by HQ automatically in backend or we filter here
                 if (empRes.success) setEmployees(empRes.data);
+            } else if (user?.role === 'employee') {
+                setFilters(prev => ({ ...prev, employeeId: user._id }));
             }
         } catch (err) { console.error(err); }
     };
