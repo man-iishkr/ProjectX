@@ -5,6 +5,7 @@ import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
 import HybridRouteSearch from '../../components/HybridRouteSearch';
 import { getReverseGeoCode, getPlaceDetails } from '../../api/mappls.api';
 import { useAuth } from '../../context/AuthContext';
+import { getProducts } from '../../api/inventory.api';
 
 // Haversine formula to calculate distance (in km)
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -42,6 +43,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         date: new Date().toISOString().split('T')[0],
         area: '',
         speciality: '',
+        products: [] as string[], // Array of Product IDs
         hq: user?.role === 'hq' ? user.hq : '',
         clinicAddress: '',
         city: '',
@@ -62,6 +64,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         distance: 0
     });
     const [hqs, setHQs] = useState<any[]>([]);
+    const [availableProducts, setAvailableProducts] = useState<any[]>([]);
     const [routeCoords, setRouteCoords] = useState<{
         from: { lat: number, lng: number } | null,
         to: { lat: number, lng: number } | null
@@ -69,14 +72,27 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
 
     useEffect(() => {
         loadHQs();
+        loadProducts();
         if (initialData) {
             setFormData({
                 ...formData,
                 ...initialData,
-                hq: initialData.hq?._id || initialData.hq
+                hq: initialData.hq?._id || initialData.hq,
+                products: initialData.products?.map((p: any) => p._id || p) || []
             });
         }
     }, [initialData]);
+
+    const loadProducts = async () => {
+        try {
+            const res = await getProducts();
+            if (res.success) {
+                setAvailableProducts(res.data);
+            }
+        } catch (err) {
+            console.error('Failed to load products', err);
+        }
+    };
 
     useEffect(() => {
         if (routeCoords.from && routeCoords.to) {
@@ -300,6 +316,56 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 <div>
                     <label className="block text-sm font-medium mb-1">Speciality *</label>
                     <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded" required />
+                </div>
+
+                {/* Product Selection */}
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Promoted Products</label>
+                    <div className="border rounded p-3 bg-white">
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {formData.products.map(prodId => {
+                                const prod = availableProducts.find(p => p._id === prodId);
+                                return (
+                                    <span key={prodId} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                        {prod?.name || 'Unknown'}
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({
+                                                ...prev,
+                                                products: prev.products.filter(id => id !== prodId)
+                                            }))}
+                                            className="hover:text-blue-900 font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                );
+                            })}
+                            {formData.products.length === 0 && <span className="text-gray-400 text-sm">No products selected</span>}
+                        </div>
+
+                        <select
+                            className="w-full border p-2 rounded"
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val && !formData.products.includes(val)) {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        products: [...prev.products, val]
+                                    }));
+                                }
+                                e.target.value = ''; // Reset select
+                            }}
+                        >
+                            <option value="">+ Add Product...</option>
+                            {availableProducts
+                                .filter(p => !formData.products.includes(p._id))
+                                .map(p => (
+                                    <option key={p._id} value={p._id}>{p.name}</option>
+                                ))
+                            }
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Class</label>

@@ -113,5 +113,20 @@ export const analyticsAPI = {
     delete: async (id: string) => {
         const { data } = await api.delete(`/analytics/${id}`);
         return data;
+    },
+
+    getCallFrequency: async (params?: {
+        year?: number;
+        month?: number;
+        hqId?: string;
+        employeeId?: string;
+    }) => {
+        const { data } = await api.get('/analytics/call-frequency', { params });
+        return data;
+    },
+
+    getEmployeeTrend: async (employeeId: string) => {
+        const { data } = await api.get('/analytics/employee-trend', { params: { employeeId } });
+        return data;
     }
 };

@@ -100,6 +100,17 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
                                     <td className="px-4 py-2 border-l">Loan Retrieval</td>
                                     <td className="px-4 py-2 text-right">{salary.deductions?.loanRepayment?.toLocaleString() || 0}</td>
                                 </tr>
+                                <tr>
+                                    <td className="px-4 py-2 text-indigo-600 font-medium">
+                                        Travel Allowance
+                                        <span className="text-xs text-slate-400 ml-1">
+                                            ({salary.allowances?.ta > 0 ? `${Math.round(salary.allowances.ta / 10)} km × ₹10` : '0 km'})
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-2 text-right text-indigo-600 font-medium">{salary.allowances?.ta?.toLocaleString() || 0}</td>
+                                    <td className="px-4 py-2 border-l">Insurance</td>
+                                    <td className="px-4 py-2 text-right">{salary.deductions?.insurance?.toLocaleString() || 0}</td>
+                                </tr>
                                 <tr className="bg-slate-50 font-bold border-t border-b-2">
                                     <td className="px-4 py-3">Total Earnings</td>
                                     <td className="px-4 py-3 text-right">{salary.grossSalary?.toLocaleString()}</td>

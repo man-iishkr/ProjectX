@@ -5,8 +5,11 @@ import { getHQs } from '../../api/hq.api';
 import Table from '../../components/Table';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, Search } from 'lucide-react';
+import { Calendar, Search, PhoneCall, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+
+import ReportCall from './ReportCall';
+
 
 const CallReportList: React.FC = () => {
     const { user } = useAuth();
@@ -14,13 +17,13 @@ const CallReportList: React.FC = () => {
     const [employees, setEmployees] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showReportModal, setShowReportModal] = useState(false);
 
-    // Filters
     const [filters, setFilters] = useState({
-        employeeId: '',
-        hqId: '',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        employeeId: '',
+        hqId: ''
     });
 
     useEffect(() => {
@@ -30,37 +33,31 @@ const CallReportList: React.FC = () => {
 
     const loadInitialData = async () => {
         try {
+            if (user?.role === 'admin' || user?.role === 'hq') {
+                const empRes = await getEmployees();
+                if (empRes.success) setEmployees(empRes.data);
+            }
             if (user?.role === 'admin') {
                 const hqRes = await getHQs();
                 if (hqRes.success) setHQs(hqRes.data);
-
-                const empRes = await getEmployees();
-                if (empRes.success) setEmployees(empRes.data);
-            } else if (user?.role === 'hq') {
-                const empRes = await getEmployees(); // Should filter by HQ automatically in backend or we filter here
-                if (empRes.success) setEmployees(empRes.data);
-            } else if (user?.role === 'employee') {
-                setFilters(prev => ({ ...prev, employeeId: user._id }));
             }
-        } catch (err) { console.error(err); }
-    };
-
-    const loadReports = async () => {
-        try {
-            setLoading(true);
-            const res = await callReportAPI.getAll(filters);
-            if (res.success) {
-                setReports(res.data);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
+        } catch (error) {
+            console.error(error);
         }
     };
 
-    const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const loadReports = async () => {
+        setLoading(true);
+        try {
+            const data = await callReportAPI.getAll(filters);
+            if (data.success) {
+                setReports(data.data);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -68,52 +65,60 @@ const CallReportList: React.FC = () => {
         loadReports();
     };
 
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFilters({ ...filters, [e.target.name]: e.target.value });
+    };
+
     const columns = [
+        { header: 'Date', accessor: (row: any) => new Date(row.createdAt || row.date).toLocaleDateString() },
+        { header: 'Time', accessor: (row: any) => new Date(row.createdAt || row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+        { header: 'Employee', accessor: (row: any) => row.employee?.name || '-' },
+        { header: 'Doctor', accessor: (row: any) => row.doctor?.name || '-' },
         {
-            header: 'Doctor',
-            accessor: (row: any) => (
-                <div>
-                    <div className="font-medium">{row.doctor?.name}</div>
-                    <div className="text-xs text-muted-foreground">{row.doctor?.address}</div>
-                </div>
-            )
+            header: 'Products', accessor: (row: any) => {
+                if (!row.products || row.products.length === 0) return '-';
+                return row.products.map((p: any) => p.name || p).join(', ');
+            }
         },
         {
-            header: 'Employee',
-            accessor: (row: any) => row.employee?.name || 'Unknown'
+            header: 'Route Distance', accessor: (row: any) => {
+                const dist = row.doctor?.distance;
+                if (dist == null || dist === 0) return '0 km (Local)';
+                return `${dist} km`;
+            }
         },
-        {
-            header: 'Date & Time',
-            accessor: (row: any) => new Date(row.createdAt).toLocaleString()
-        },
-        {
-            header: 'Stats',
-            accessor: (row: any) => (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Visit #{row.stats?.visitFrequency || 1}
-                </span>
-            )
-        },
-        {
-            header: 'Status',
-            accessor: (row: any) => (
-                <div className="flex flex-col">
-                    <span className={`text-xs font-bold ${row.isApproved ? 'text-green-600' : 'text-amber-600'}`}>
-                        {row.isApproved ? 'Approved' : 'Pending Approval'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{Math.round(row.distanceFromDoctor || 0)}m away</span>
-                </div>
-            )
-        },
-        {
-            header: 'Remarks',
-            accessor: 'remarks'
-        }
+        { header: 'Status', accessor: (row: any) => row.isApproved ? '✅ Verified' : '⏳ Pending' },
+        { header: 'Remarks', accessor: 'remarks' },
     ];
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Call Report Monitoring</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Call Report Monitoring</h1>
+                {user?.role === 'employee' && (
+                    <Button onClick={() => setShowReportModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                        <PhoneCall className="h-4 w-4 mr-2" />
+                        New Call Report
+                    </Button>
+                )}
+            </div>
+
+            {/* Report Call Modal */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                    <div className="relative w-full max-w-xl">
+                        <button
+                            onClick={() => { setShowReportModal(false); loadReports(); }}
+                            className="absolute -top-10 right-0 text-white hover:text-gray-200"
+                        >
+                            <X className="h-8 w-8" />
+                        </button>
+                        <ReportCall />
+                    </div>
+                </div>
+            )}
+
+            {/* Filters */}
 
             {/* Filters */}
             <Card>

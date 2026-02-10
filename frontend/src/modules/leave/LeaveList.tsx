@@ -5,7 +5,7 @@ import Table from '../../components/Table';
 import { Button } from '../../components/ui/Button';
 import { Plus, X, Check } from 'lucide-react';
 
-const LeaveList: React.FC = () => {
+const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
     const { user } = useAuth();
     const [leaves, setLeaves] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

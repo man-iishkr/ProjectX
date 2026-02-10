@@ -3,8 +3,13 @@ const router = express.Router();
 const salaryController = require('./salary.controller');
 const { protect, authorize } = require('../../middleware/auth.middleware');
 
-// All routes require authentication AND admin role
+// All routes require authentication
 router.use(protect);
+
+// Employee-accessible: get own salary (BEFORE admin-only middleware)
+router.get('/my', salaryController.getMySalary);
+
+// All routes below require admin role
 router.use(authorize('admin'));
 
 // Get all salary records

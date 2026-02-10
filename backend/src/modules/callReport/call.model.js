@@ -27,6 +27,10 @@ const CallReportSchema = new mongoose.Schema({
             required: true
         }
     },
+    products: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+    }],
     digipin: String, // Optional reference
     isApproved: {
         type: Boolean,

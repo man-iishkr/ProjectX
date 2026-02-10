@@ -6,6 +6,12 @@ export const getSalaries = async (filters: any) => {
     return response.data;
 };
 
+export const getMySalary = async (filters: { year: number; month: number }) => {
+    const query = new URLSearchParams(filters as any).toString();
+    const response = await api.get(`/salary/my?${query}`);
+    return response.data;
+};
+
 export const getSalaryById = async (id: string) => {
     const response = await api.get(`/salary/${id}`);
     return response.data;

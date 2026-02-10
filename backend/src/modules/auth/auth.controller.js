@@ -35,7 +35,7 @@ exports.login = async (req, res, next) => {
         }
 
         // Check for user
-        const user = await User.findOne({ username }).select('+password');
+        const user = await User.findOne({ username }).select('+password').populate('hq', 'name');
 
         if (!user) {
             console.log(`Login failed: User not found for username: ${username}`);
@@ -46,7 +46,7 @@ exports.login = async (req, res, next) => {
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
-            console.log(`Login failed: Password mismatch for user: ${username}`);
+            console.log(`Login failed: Password incorrect for username: ${username}`);
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
@@ -61,7 +61,7 @@ exports.login = async (req, res, next) => {
 // @access  Private
 exports.getMe = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).populate('hq', 'name');
         res.status(200).json({
             success: true,
             data: user

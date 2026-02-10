@@ -265,6 +265,132 @@ exports.getDashboardSummary = async (req, res) => {
     }
 };
 
+// ============================================================
+// Call Frequency Stats for Stacked Bar Chart
+// GET /api/v1/analytics/call-frequency
+// Returns per-employee: how many doctors visited 1x, 2x, 3x+
+// ============================================================
+exports.getCallFrequencyStats = async (req, res) => {
+    try {
+        const { year, month, hqId, employeeId } = req.query;
+        const y = parseInt(year) || new Date().getFullYear();
+        const m = parseInt(month) || (new Date().getMonth() + 1);
+
+        const startDate = new Date(y, m - 1, 1);
+        const endDate = new Date(y, m, 0, 23, 59, 59);
+
+        // 1. Find relevant employees
+        let empFilter = { role: 'employee' };
+        if (hqId) empFilter.hq = hqId;
+        if (employeeId) empFilter._id = employeeId;
+
+        const employees = await User.find(empFilter).select('name employeeId hq');
+
+        const result = [];
+
+        for (const emp of employees) {
+            // 2. Get all call reports for this employee in the month
+            const calls = await CallReport.find({
+                employee: emp._id,
+                createdAt: { $gte: startDate, $lte: endDate }
+            }).select('doctor');
+
+            // 3. Count visits per doctor
+            const doctorVisitMap = {};
+            calls.forEach(call => {
+                const docId = call.doctor?.toString();
+                if (docId) {
+                    doctorVisitMap[docId] = (doctorVisitMap[docId] || 0) + 1;
+                }
+            });
+
+            // 4. Categorize: how many doctors visited 1x, 2x, 3x+
+            let once = 0, twice = 0, thrice = 0;
+            Object.values(doctorVisitMap).forEach((count) => {
+                if (count === 1) once++;
+                else if (count === 2) twice++;
+                else if (count >= 3) thrice++;
+            });
+
+            result.push({
+                employeeId: emp._id,
+                employeeName: emp.name,
+                once,
+                twice,
+                thricePlus: thrice,
+                totalDoctors: Object.keys(doctorVisitMap).length,
+                totalVisits: calls.length
+            });
+        }
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('Call Frequency Stats Error:', error);
+        res.status(500).json({ message: 'Error fetching call frequency stats', error: error.message });
+    }
+};
+
+// ============================================================
+// Employee Monthly Trend (Last 3 months)
+// GET /api/v1/analytics/employee-trend?employeeId=xxx
+// ============================================================
+exports.getEmployeeTrend = async (req, res) => {
+    try {
+        const { employeeId } = req.query;
+        if (!employeeId) {
+            return res.status(400).json({ message: 'employeeId is required' });
+        }
+
+        const now = new Date();
+        const months = [];
+
+        for (let i = 2; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const startDate = new Date(d.getFullYear(), d.getMonth(), 1);
+            const endDate = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+
+            const count = await CallReport.countDocuments({
+                employee: employeeId,
+                createdAt: { $gte: startDate, $lte: endDate }
+            });
+
+            const monthLabel = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+            months.push({ month: monthLabel, visits: count });
+        }
+
+        // Also get per-doctor breakdown for current employee
+        const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+        const calls = await CallReport.find({
+            employee: employeeId,
+            createdAt: { $gte: currentStart, $lte: currentEnd }
+        }).populate('doctor', 'name');
+
+        const doctorVisitMap = {};
+        calls.forEach(call => {
+            const docName = call.doctor?.name || 'Unknown';
+            const docId = call.doctor?._id?.toString();
+            if (docId) {
+                if (!doctorVisitMap[docId]) {
+                    doctorVisitMap[docId] = { name: docName, visits: 0 };
+                }
+                doctorVisitMap[docId].visits++;
+            }
+        });
+
+        const doctorBreakdown = Object.values(doctorVisitMap).sort((a, b) => b.visits - a.visits);
+
+        res.json({
+            success: true,
+            data: { trend: months, doctorBreakdown }
+        });
+    } catch (error) {
+        console.error('Employee Trend Error:', error);
+        res.status(500).json({ message: 'Error fetching employee trend', error: error.message });
+    }
+};
+
 // Delete analytics
 exports.deleteAnalytics = async (req, res) => {
     try {

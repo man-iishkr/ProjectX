@@ -3,7 +3,7 @@ import Table from '../../components/Table';
 import { Button } from '../../components/ui/Button';
 import { getSalaries, upsertSalary, getSalaryStats, updatePaymentStatus } from '../../api/salary.api';
 import { getEmployees } from '../../api/employee.api';
-import { FileText, DollarSign, RefreshCw } from 'lucide-react';
+import { FileText, DollarSign, RefreshCw, Info } from 'lucide-react';
 import SalarySlip from './SalarySlip';
 
 const SalaryList: React.FC = () => {
@@ -78,11 +78,19 @@ const SalaryList: React.FC = () => {
     const getTableData = () => {
         return employees.map(emp => {
             const salary = salaries.find(s => s.employee._id === emp._id || s.employee === emp._id);
+            const ta = salary?.allowances?.ta || 0;
+            // TA = route distance (km) × ₹10 per visit
+            // The distance is stored on each doctor record and calculated via OSRM road routing
+            const distanceKm = ta > 0 ? (ta / 10).toFixed(1) : '0';
             return {
                 ...emp,
                 salaryStatus: salary ? salary.paymentStatus : 'Not Generated',
                 salaryId: salary?._id,
                 salaryRecord: salary,
+                baseSalary: salary?.baseSalary || '-',
+                approvedExpenses: salary?.approvedExpenses || 0,
+                travelAllowance: ta,
+                distanceKm,
                 netSalary: salary?.netSalary || '-'
             };
         });
@@ -140,8 +148,25 @@ const SalaryList: React.FC = () => {
                     columns={[
                         { header: 'Employee', accessor: 'name' },
                         { header: 'Designation', accessor: 'designation' },
+                        { header: 'Base Salary', accessor: (row: any) => row.baseSalary !== '-' ? `₹${Number(row.baseSalary).toLocaleString()}` : '-' },
+                        { header: 'Expenses', accessor: (row: any) => row.approvedExpenses > 0 ? `₹${Number(row.approvedExpenses).toLocaleString()}` : '₹0' },
+                        {
+                            header: 'Travel Allowance', accessor: (row: any) => (
+                                <div className="flex items-center gap-1">
+                                    <span>{row.travelAllowance > 0 ? `₹${Number(row.travelAllowance).toLocaleString()}` : '₹0'}</span>
+                                    {row.travelAllowance > 0 && (
+                                        <span className="relative group">
+                                            <Info className="h-3.5 w-3.5 text-blue-500 cursor-help" />
+                                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                Distance: {row.distanceKm} km this month
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
+                            )
+                        },
                         { header: 'Status', accessor: 'salaryStatus' },
-                        { header: 'Net Salary', accessor: 'netSalary' }
+                        { header: 'Net Salary', accessor: (row: any) => row.netSalary !== '-' ? `₹${Number(row.netSalary).toLocaleString()}` : '-' }
                     ]}
                     actions={(row) => (
                         <div className="flex gap-2 items-center">

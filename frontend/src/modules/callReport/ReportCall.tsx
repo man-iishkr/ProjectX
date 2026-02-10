@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { MapPin, CheckCircle, XCircle, Loader2, Navigation } from 'lucide-react';
 import { getDoctors } from '../../api/doctor.api';
-// import { useAuth } from '../../context/AuthContext';
+import { createCallReport } from '../../api/call.api';
+import { getProducts } from '../../api/inventory.api';
+// import { useAuth } from '../../context/AuthContext'; // Not used in this version?
 
 // Haversine formula to calculate distance in meters
 const getDistanceFromLatLonInM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -25,21 +27,46 @@ const deg2rad = (deg: number) => {
 
 const ReportCall: React.FC = () => {
     // const { user } = useAuth();
-    // const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
     const [doctors, setDoctors] = useState<any[]>([]);
     const [selectedDoctorId, setSelectedDoctorId] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+
+    // Products State
+    const [products, setProducts] = useState<any[]>([]);
+    const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
     // Location State
     const [verifying, setVerifying] = useState(false);
     const [verified, setVerified] = useState(false);
     const [distance, setDistance] = useState<number | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
-    // const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+
+    // Form State
+    const [remarks, setRemarks] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         loadDoctors();
+        loadProducts();
     }, []);
+
+    const loadProducts = async () => {
+        try {
+            const res = await getProducts();
+            if (res.success) {
+                setProducts(res.data);
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    const handleProductToggle = (productId: string) => {
+        setSelectedProductIds(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
+    };
 
     const loadDoctors = async () => {
         try {
@@ -62,6 +89,7 @@ const ReportCall: React.FC = () => {
         setVerified(false);
         setDistance(null);
         setErrorMsg('');
+        setUserLocation(null);
     };
 
     const handleVerifyLocation = () => {
@@ -81,7 +109,7 @@ const ReportCall: React.FC = () => {
                 (position) => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
-                    // setUserLocation({ lat: userLat, lng: userLng });
+                    setUserLocation({ lat: userLat, lng: userLng });
 
                     const docLng = selectedDoctor.location.coordinates[0];
                     const docLat = selectedDoctor.location.coordinates[1];
@@ -91,17 +119,13 @@ const ReportCall: React.FC = () => {
 
                     setVerifying(false);
 
-                    if (dist <= 200) { // Using 200m for testing, user asked for 20m periphery.
-                        // Ideally 20m, but GPS accuracy can vary. Let's start lenient or strict as requested.
-                        // User said: "compute the 20m periphery".
-                        if (dist <= 50) { // 50m tolerance for GPS drift
-                            setVerified(true);
-                        } else {
-                            setErrorMsg(`You are ${Math.round(dist)}m away. Please move closer to the clinic (Target: 20m).`);
-                            setVerified(false);
-                        }
+                    // User requested 20m. Adding slight buffer to 30m for GPS accuracy.
+                    const THRESHOLD = 30;
+
+                    if (dist <= THRESHOLD) {
+                        setVerified(true);
                     } else {
-                        setErrorMsg(`You are too far (${Math.round(dist)}m). Check-in failed.`);
+                        setErrorMsg(`You are ${Math.round(dist)}m away. Please move closer to the clinic (Target: 20m).`);
                         setVerified(false);
                     }
                 },
@@ -118,10 +142,43 @@ const ReportCall: React.FC = () => {
         }
     };
 
-    const handleSubmit = () => {
-        if (!verified) return;
-        alert("Call Report Submitted Successfully! (Mock)");
-        // Call API to create call report
+    const handleSubmit = async () => {
+        if (!verified || !userLocation) return;
+
+        try {
+            setSubmitting(true);
+
+            // Append timestamp to remarks
+            const timestampedRemarks = `[${new Date().toLocaleTimeString()}] ${remarks}`;
+
+            const res = await createCallReport({
+                doctorId: selectedDoctorId,
+                latitude: userLocation.lat,
+                longitude: userLocation.lng,
+                remarks: timestampedRemarks,
+                products: selectedProductIds // Send selected products
+            });
+
+            if (res.success) {
+                alert(res.data.message || "Call Report Submitted Successfully!");
+                // Reset form
+                setSelectedDoctorId('');
+                setSelectedDoctor(null);
+                setVerified(false);
+                setDistance(null);
+                setRemarks('');
+                setSelectedProductIds([]); // Reset products
+                setUserLocation(null);
+                loadDoctors();
+            } else {
+                alert(res.error || "Failed to submit report");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -132,6 +189,7 @@ const ReportCall: React.FC = () => {
                     Location Verified Call Reporting
                 </CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-6">
 
                 {/* 1. Select Doctor */}
@@ -193,16 +251,53 @@ const ReportCall: React.FC = () => {
                     </div>
                 )}
 
-                {/* 3. Submit Report */}
+                {/* 3. Products & Submit */}
                 {verified && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                        <textarea
-                            className="w-full border p-2 rounded"
-                            placeholder="Enter call notes, products discussed..."
-                            rows={4}
-                        />
-                        <Button onClick={handleSubmit} className="w-full bg-green-600 hover:bg-green-700">
-                            Submit Call Report
+
+                        {/* Products Multi-Select */}
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Discussed Products</label>
+                            <div className="border rounded p-3 h-40 overflow-y-auto grid grid-cols-2 gap-2 bg-slate-50">
+                                {products.map(product => (
+                                    <label key={product._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProductIds.includes(product._id)}
+                                            onChange={() => handleProductToggle(product._id)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        {product.name}
+                                    </label>
+                                ))}
+                                {products.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No products found.</span>}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Call Notes</label>
+                            <textarea
+                                className="w-full border p-2 rounded"
+                                placeholder="Enter call details..."
+                                rows={3}
+                                value={remarks}
+                                onChange={(e) => setRemarks(e.target.value)}
+                            />
+                        </div>
+
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                            {submitting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Submitting...
+                                </>
+                            ) : (
+                                "Submit Call Report"
+                            )}
                         </Button>
                     </div>
                 )}

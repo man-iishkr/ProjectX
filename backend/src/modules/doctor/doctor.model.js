@@ -30,6 +30,10 @@ const DoctorSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add speciality']
     },
+    products: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+    }],
     hq: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'HQ',

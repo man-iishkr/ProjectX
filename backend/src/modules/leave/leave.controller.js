@@ -3,12 +3,12 @@ const Leave = require('./leave.model');
 // Get all leave requests (admin/hq can see all, employee sees own)
 exports.getAllLeaves = async (req, res) => {
     try {
-        const { role, userId } = req.user;
+        const { role, _id } = req.user;
 
         let query = {};
         if (role === 'employee') {
-            // For employees, filter by userId directly since 'employee' field in Leave references User
-            query.employee = userId;
+            // For employees, filter by _id directly
+            query.employee = _id;
         }
 
         const leaves = await Leave.find(query)
@@ -40,15 +40,8 @@ exports.getLeaveById = async (req, res) => {
 };
 
 // Create leave request
-const fs = require('fs');
-const path = require('path');
-
 exports.createLeave = async (req, res) => {
-    const logFile = path.join(__dirname, '../../../backend_debug.log');
-    const log = (msg) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
-
     try {
-        log(`Creating Leave - Body: ${JSON.stringify(req.body)}`);
         const { employeeId, leaveType, startDate, endDate, reason, attachments } = req.body;
 
         // Validate dates
@@ -56,7 +49,6 @@ exports.createLeave = async (req, res) => {
             return res.status(400).json({ message: 'Start date must be before end date' });
         }
 
-        log('Instantiating Leave Model...');
         const leave = new Leave({
             employee: employeeId,
             leaveType,
@@ -66,15 +58,11 @@ exports.createLeave = async (req, res) => {
             attachments: attachments || []
         });
 
-        log('Saving Leave...');
         await leave.save();
-        log('Leave Saved. Populating...');
         await leave.populate('employee', 'name email employeeId');
-        log('Populated. Sending response.');
 
         res.status(201).json({ message: 'Leave request created', leave });
     } catch (error) {
-        log(`Error in createLeave: ${error.message} \nStack: ${error.stack}`);
         console.error('Error in createLeave:', error);
         res.status(500).json({ message: 'Error creating leave', error: error.message });
     }

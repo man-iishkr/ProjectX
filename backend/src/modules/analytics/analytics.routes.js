@@ -12,6 +12,12 @@ router.get('/', analyticsController.getAnalytics);
 // Get dashboard summary
 router.get('/summary', analyticsController.getDashboardSummary);
 
+// Call frequency stats (stacked bar chart data)
+router.get('/call-frequency', analyticsController.getCallFrequencyStats);
+
+// Employee monthly trend (last 3 months)
+router.get('/employee-trend', analyticsController.getEmployeeTrend);
+
 // Get single analytics by ID
 router.get('/:id', analyticsController.getAnalyticsById);
 

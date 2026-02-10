@@ -317,48 +317,62 @@ exports.getPlaceDetails = async (req, res, next) => {
         }
 
         // Normalize Data for Frontend
+        // Normalize Data for Frontend
         if (data) {
-            // Ensure latitude/longitude are present in standard fields
-            if (!data.latitude && !data.lat) {
-                // Try to find them in nested objects if present
-                if (data.geometry && data.geometry.location) {
-                    data.latitude = data.geometry.location.lat;
-                    data.longitude = data.geometry.location.lng;
-                }
-            }
-            // If we have 'lat', copy to 'latitude' for consistency
-            if (data.lat && !data.latitude) data.latitude = data.lat;
-            if (data.lng && !data.longitude) data.longitude = data.lng;
-
-            // Generate DigiPin for the found coordinates
-            if (data.latitude && data.longitude) {
-                try {
-                    const generatedPin = await digipin.encode(data.latitude, data.longitude);
-                    if (generatedPin) {
-                        data.digipin = generatedPin;
-                        console.log('Generated DigiPin:', generatedPin);
+            try {
+                // Ensure latitude/longitude are present in standard fields
+                if (!data.latitude && !data.lat) {
+                    // Try to find them in nested objects if present
+                    if (data.geometry && data.geometry.location) {
+                        data.latitude = data.geometry.location.lat;
+                        data.longitude = data.geometry.location.lng;
                     }
-                } catch (genError) {
-                    console.error('DigiPin Generation Failed:', genError.message);
                 }
+                // If we have 'lat', copy to 'latitude' for consistency
+                if (data.lat && !data.latitude) data.latitude = data.lat;
+                if (data.lng && !data.longitude) data.longitude = data.lng;
+
+                // Generate DigiPin for the found coordinates
+                if (data.latitude && data.longitude) {
+                    try {
+                        // Ensure lat/lng are numbers
+                        const latNum = parseFloat(data.latitude);
+                        const lngNum = parseFloat(data.longitude);
+
+                        if (!isNaN(latNum) && !isNaN(lngNum)) {
+                            const generatedPin = await digipin.encode(latNum, lngNum);
+                            if (generatedPin) {
+                                data.digipin = generatedPin;
+                                console.log('Generated DigiPin:', generatedPin);
+                            }
+                        }
+                    } catch (genError) {
+                        console.error('DigiPin Generation Failed:', genError.message);
+                    }
+                }
+
+                // Debug Log the final normalized data important fields
+                console.log('Normalized Mappls Data:', JSON.stringify({
+                    eLoc: data.eLoc,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    digipin: data.digipin,
+                    placeName: data.placeName || data.poi
+                }));
+
+                res.status(200).json({ success: true, data: data });
+            } catch (normError) {
+                console.error('Normalization Error:', normError);
+                // Return what we have even if normalization failed partly
+                res.status(200).json({ success: true, data: data });
             }
-
-            // Debug Log the final normalized data important fields
-            console.log('Normalized Mappls Data:', JSON.stringify({
-                eLoc: data.eLoc,
-                latitude: data.latitude,
-                longitude: data.longitude,
-                digipin: data.digipin,
-                placeName: data.placeName || data.poi
-            }));
-
-            res.status(200).json({ success: true, data: data });
         } else {
+            console.log('No data found for request:', req.query);
             res.status(404).json({ success: false, error: 'Location details not found' });
         }
 
     } catch (err) {
-        console.error('Mappls Details Proxy Error:', err.message);
-        res.status(500).json({ success: false, error: 'Details failed' });
+        console.error('Mappls Details Proxy Error Stack:', err.stack);
+        res.status(500).json({ success: false, error: 'Details failed: ' + err.message });
     }
 };

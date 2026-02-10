@@ -1,5 +1,6 @@
 const Doctor = require('./doctor.model');
 const Route = require('../route/route.model');
+const { getRoadDistance } = require('../../utils/roadDistance');
 
 // @desc    Add new doctor
 // @route   POST /api/v1/doctors
@@ -60,6 +61,24 @@ exports.createDoctor = async (req, res, next) => {
             }
         }
 
+        // Calculate road distance between routeFrom and routeTo
+        if (req.body.routeFrom && req.body.routeTo) {
+            const rf = (req.body.routeFrom || '').trim().toLowerCase();
+            const rt = (req.body.routeTo || '').trim().toLowerCase();
+            if (rf === rt) {
+                req.body.distance = 0;
+            } else {
+                try {
+                    const dist = await getRoadDistance(req.body.routeFrom, req.body.routeTo);
+                    req.body.distance = dist;
+                    console.log(`Road distance ${req.body.routeFrom} -> ${req.body.routeTo}: ${dist} km`);
+                } catch (distErr) {
+                    console.error('Road distance calc failed:', distErr.message);
+                    req.body.distance = 0;
+                }
+            }
+        }
+
         const doctor = await Doctor.create(req.body);
 
         res.status(201).json({
@@ -67,6 +86,12 @@ exports.createDoctor = async (req, res, next) => {
             data: doctor
         });
     } catch (err) {
+        console.error('Create Doctor Error:', err.message);
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map(val => val.message);
+            console.error('Validation Messages:', messages);
+            return res.status(400).json({ success: false, error: messages.join(', ') });
+        }
         next(err);
     }
 };
@@ -195,6 +220,25 @@ exports.updateDoctor = async (req, res, next) => {
                 type: 'Point',
                 coordinates: [parseFloat(req.body.longitude), parseFloat(req.body.latitude)]
             };
+        }
+
+        // Recalculate road distance if route changed
+        const newRouteFrom = req.body.routeFrom || doctor.routeFrom;
+        const newRouteTo = req.body.routeTo || doctor.routeTo;
+        if (req.body.routeFrom || req.body.routeTo) {
+            const rf = (newRouteFrom || '').trim().toLowerCase();
+            const rt = (newRouteTo || '').trim().toLowerCase();
+            if (rf === rt) {
+                req.body.distance = 0;
+            } else {
+                try {
+                    const dist = await getRoadDistance(newRouteFrom, newRouteTo);
+                    req.body.distance = dist;
+                    console.log(`Updated road distance ${newRouteFrom} -> ${newRouteTo}: ${dist} km`);
+                } catch (distErr) {
+                    console.error('Road distance calc failed:', distErr.message);
+                }
+            }
         }
 
         doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, {

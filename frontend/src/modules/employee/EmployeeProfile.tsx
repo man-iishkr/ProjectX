@@ -1,10 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { User, MapPin, Briefcase, Phone, Mail, Award, DollarSign, Calendar } from 'lucide-react';
+import { User, MapPin, Briefcase, Phone, Mail, Award, Navigation } from 'lucide-react';
+import { getMySalary } from '../../api/salary.api';
 
 const EmployeeProfile: React.FC = () => {
     const { user } = useAuth();
+    const [distanceKm, setDistanceKm] = useState(0);
+
+    useEffect(() => {
+        if (user) {
+            fetchTravelData();
+        }
+    }, [user]);
+
+    const fetchTravelData = async () => {
+        try {
+            const now = new Date();
+            const res = await getMySalary({
+                year: now.getFullYear(),
+                month: now.getMonth() + 1
+            });
+            const mySalary = res?.data;
+
+            if (mySalary) {
+                const ta = mySalary.allowances?.ta || 0;
+                setDistanceKm(ta > 0 ? Math.round(ta / 10) : 0);
+            }
+        } catch (err) {
+            console.error('Failed to fetch travel data:', err);
+        }
+    };
 
     if (!user) return <div>Loading profile...</div>;
 
@@ -60,30 +86,25 @@ const EmployeeProfile: React.FC = () => {
                 {/* Stats Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-lg">Comp & Benefits</CardTitle>
+                        <CardTitle className="text-lg">This Month</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                            <div className="flex items-center gap-2 mb-1">
-                                <DollarSign className="h-4 w-4 text-green-600" />
-                                <span className="text-xs font-medium text-green-700 uppercase">Monthly Pay</span>
-                            </div>
-                            <p className="text-2xl font-bold text-green-800">₹{user.monthlyPay?.toLocaleString() || 0}</p>
-                        </div>
-
                         <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                             <div className="flex items-center gap-2 mb-1">
-                                <Calendar className="h-4 w-4 text-blue-600" />
-                                <span className="text-xs font-medium text-blue-700 uppercase">Daily Allowance</span>
+                                <Navigation className="h-4 w-4 text-blue-600" />
+                                <span className="text-xs font-medium text-blue-700 uppercase">Distance Travelled</span>
                             </div>
-                            <p className="text-2xl font-bold text-blue-800">₹{user.dailyAllowance || 'Standard'}</p>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold text-blue-800">{distanceKm}</span>
+                                <span className="text-sm text-blue-600">km</span>
+                            </div>
+                            <p className="text-xs text-blue-500 mt-1">Based on approved call report routes</p>
                         </div>
 
-                        <div className="pt-4 border-t">
-                            <p className="text-xs text-slate-500 mb-2">Distance Travelled (This Month)</p>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-bold text-slate-900">{user.distanceTravelled || 0}</span>
-                                <span className="text-sm text-slate-500">km</span>
+                        <div className="pt-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-500">Role</span>
+                                <span className="font-semibold capitalize">{user.role}</span>
                             </div>
                         </div>
                     </CardContent>

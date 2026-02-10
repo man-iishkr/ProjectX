@@ -9,7 +9,7 @@ const dateFns = require('date-fns');
 // @access  Private (Employee)
 exports.createCallReport = async (req, res, next) => {
     try {
-        const { doctorId, latitude, longitude, remarks, digipin } = req.body;
+        const { doctorId, latitude, longitude, remarks, digipin, products } = req.body;
 
         // Check if doctor exists
         const doctor = await Doctor.findById(doctorId);
@@ -58,6 +58,7 @@ exports.createCallReport = async (req, res, next) => {
             },
             digipin,
             remarks,
+            products, // Add products here
             isApproved,
             distanceFromDoctor: distance
         });
@@ -110,10 +111,23 @@ exports.createCallReport = async (req, res, next) => {
                 // 2. Travel Allowance (TA)
                 // Logic: "calculate distance * 10". 
                 // User said "if route is set from one location to other... road distance... multiplied by a fixed given cost"
-                // We stored this in doctor.distance (in km)
-                // Rate: Rs. 10 per km
-                if (doctor.distance && doctor.distance > 0) {
-                    const taAmount = doctor.distance * 10;
+                // And "if the route of doctor is defined same ,i.e jamshedpur to jamshedpur, no calculation is made"
+
+                let taAmount = 0;
+
+                // Normalization for comparison
+                const routeFrom = (doctor.routeFrom || '').trim().toLowerCase();
+                const routeTo = (doctor.routeTo || '').trim().toLowerCase();
+
+                if (routeFrom !== routeTo) {
+                    // Different locations -> Calculate TA
+                    // We rely on doctor.distance being populated (manually or via Google API elsewhere)
+                    if (doctor.distance && doctor.distance > 0) {
+                        taAmount = doctor.distance * 10;
+                    }
+                }
+
+                if (taAmount > 0) {
                     salary.allowances.ta += taAmount;
                 }
 
@@ -177,8 +191,9 @@ exports.getCallReports = async (req, res, next) => {
 
         // Fetch Reports
         const reports = await CallReport.find(query)
-            .populate('doctor', 'name address location')
+            .populate('doctor', 'name address location distance routeFrom routeTo')
             .populate('employee', 'name employeeId')
+            .populate('products', 'name')
             .sort({ createdAt: -1 });
 
         // Calculate Stats (Frequency)

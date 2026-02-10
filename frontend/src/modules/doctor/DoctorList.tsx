@@ -133,7 +133,7 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                 ]}
                 actions={(row: any) => (
                     <div className="flex gap-2">
-                        {row.approvalStatus === 'Pending' && (
+                        {row.approvalStatus === 'Pending' && (user?.role === 'admin' || user?.role === 'hq') && (
                             <button
                                 onClick={() => handleApprove(row._id)}
                                 className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"

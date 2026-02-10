@@ -22,6 +22,23 @@ exports.getAllSalaries = async (req, res) => {
     }
 };
 
+// Get logged-in employee's own salary (accessible by any authenticated user)
+exports.getMySalary = async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        let query = { employee: req.user.id };
+        if (year) query['period.year'] = parseInt(year);
+        if (month) query['period.month'] = parseInt(month);
+
+        const salary = await Salary.findOne(query)
+            .populate('employee', 'name email employeeId designation');
+
+        res.json({ success: true, data: salary });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching your salary', error: error.message });
+    }
+};
+
 // Get salary by ID
 exports.getSalaryById = async (req, res) => {
     try {
