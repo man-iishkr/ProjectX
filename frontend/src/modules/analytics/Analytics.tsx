@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { analyticsAPI, type DashboardSummary } from '../../api/analytics.api';
 import { Users, Building2, TrendingUp, Target } from 'lucide-react';
@@ -39,6 +40,7 @@ interface FrequencyData {
 }
 
 const Analytics: React.FC = () => {
+    const { user } = useAuth();
     const [summary, setSummary] = useState<DashboardSummary | null>(null);
     const [hqs, setHQs] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
@@ -59,8 +61,21 @@ const Analytics: React.FC = () => {
     const [trendLoading, setTrendLoading] = useState(false);
 
     useEffect(() => {
-        loadHQs();
-    }, []);
+        if (user) {
+            if (user.role === 'hq') {
+                setSelectedHQ(user.hq?._id || user.hq || '');
+            } else if (user.role === 'employee') {
+                setSelectedHQ(user.hq?._id || user.hq || '');
+                setSelectedEmployee(user._id);
+            }
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user?.role === 'admin') {
+            loadHQs();
+        }
+    }, [user]);
 
     useEffect(() => {
         loadData();
@@ -95,7 +110,17 @@ const Analytics: React.FC = () => {
     };
 
     const loadEmployeesForHQ = async () => {
+        if (user?.role === 'employee') {
+            setEmployees([user]);
+            return;
+        }
+
         try {
+            // Only fetch if HQ is selected or if user is admin/hq
+            // If admin selects "All HQs", maybe we shouldn't fetch all employees? 
+            // The UI logic: "All Employees" option appears only if selectedHQ is truthy.
+            // So we are safe here as long as selectedHQ is set.
+
             const res = await getEmployees();
             if (res.success) {
                 const filtered = selectedHQ
@@ -112,7 +137,8 @@ const Analytics: React.FC = () => {
             const data = await analyticsAPI.getSummary({
                 year: selectedYear,
                 month: selectedMonth,
-                hqId: selectedHQ || undefined
+                hqId: selectedHQ || undefined,
+                employeeId: selectedEmployee || undefined
             });
             setSummary(data);
         } catch (error) {
@@ -163,22 +189,22 @@ const Analytics: React.FC = () => {
             {
                 label: 'Visited Once',
                 data: frequencyData.map(d => d.once),
-                backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(139, 92, 246, 0.7)', // Violet 500
+                borderColor: 'rgb(139, 92, 246)',
                 borderWidth: 1
             },
             {
                 label: 'Visited Twice',
                 data: frequencyData.map(d => d.twice),
-                backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                backgroundColor: 'rgba(245, 158, 11, 0.7)', // Amber 500
                 borderColor: 'rgb(245, 158, 11)',
                 borderWidth: 1
             },
             {
                 label: 'Visited 3+ Times',
                 data: frequencyData.map(d => d.thricePlus),
-                backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald 500
+                borderColor: 'rgb(16, 185, 129)',
                 borderWidth: 1
             }
         ]
@@ -240,12 +266,13 @@ const Analytics: React.FC = () => {
         <div className="space-y-6">
             {/* Header + Filters */}
             <div className="flex flex-wrap justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Analytics Dashboard</h1>
                 <div className="flex flex-wrap gap-2">
                     <select
-                        className="border rounded px-3 py-2 text-sm bg-white"
+                        className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 disabled:opacity-50"
                         value={selectedHQ}
                         onChange={(e) => { setSelectedHQ(e.target.value); setSelectedEmployee(''); }}
+                        disabled={user?.role === 'hq' || user?.role === 'employee'}
                     >
                         <option value="">All HQs</option>
                         {hqs.map(hq => <option key={hq._id} value={hq._id}>{hq.name}</option>)}
@@ -253,9 +280,10 @@ const Analytics: React.FC = () => {
 
                     {selectedHQ && (
                         <select
-                            className="border rounded px-3 py-2 text-sm bg-white"
+                            className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 disabled:opacity-50"
                             value={selectedEmployee}
                             onChange={(e) => setSelectedEmployee(e.target.value)}
+                            disabled={user?.role === 'employee'}
                         >
                             <option value="">All Employees</option>
                             {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
@@ -263,7 +291,7 @@ const Analytics: React.FC = () => {
                     )}
 
                     <select
-                        className="border rounded px-3 py-2 text-sm bg-white"
+                        className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(Number(e.target.value))}
                     >
@@ -273,7 +301,7 @@ const Analytics: React.FC = () => {
                     </select>
 
                     <select
-                        className="border rounded px-3 py-2 text-sm bg-white"
+                        className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
                     >

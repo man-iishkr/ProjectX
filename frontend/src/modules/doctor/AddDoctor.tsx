@@ -23,7 +23,7 @@ const AddDoctor: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <div className="p-4 bg-white rounded-lg shadow-sm">
+            <div className="p-4 bg-card rounded-lg shadow-sm">
                 <DoctorForm
                     onClose={handleClose}
                     onSuccess={handleSuccess}
@@ -31,7 +31,7 @@ const AddDoctor: React.FC = () => {
                 />
             </div>
 
-            <div className="p-4 bg-white rounded-lg shadow-sm">
+            <div className="p-4 bg-card rounded-lg shadow-sm">
                 <DoctorList
                     key={refreshList}
                     hideAddButton={true}

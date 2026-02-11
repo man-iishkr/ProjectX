@@ -27,7 +27,7 @@ const items = [
 
 const HQLayout: React.FC = () => {
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50 dark:bg-background">
             <Sidebar items={items} />
             <div className="pl-64 flex flex-col min-h-screen">
                 <Header />

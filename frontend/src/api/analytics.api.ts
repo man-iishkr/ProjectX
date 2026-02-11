@@ -105,6 +105,7 @@ export const analyticsAPI = {
         year?: number;
         month?: number;
         hqId?: string;
+        employeeId?: string;
     }): Promise<DashboardSummary> => {
         const { data } = await api.get('/analytics/summary', { params });
         return data;

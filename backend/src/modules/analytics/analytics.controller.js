@@ -194,57 +194,146 @@ exports.generateAnalytics = async (req, res) => {
 // Get dashboard summary analytics
 exports.getDashboardSummary = async (req, res) => {
     try {
-        const { year, month, hqId } = req.query;
-        const currentYear = year || new Date().getFullYear();
-        const currentMonth = month || new Date().getMonth() + 1;
+        const { year, month, hqId, employeeId } = req.query;
+        const currentYear = parseInt(year) || new Date().getFullYear();
+        const currentMonth = parseInt(month) || new Date().getMonth() + 1;
 
-        // 1. Get Base Counts (Global or HQ filtered)
+        // 1. Base Counts (Live)
         let employeeQuery = { role: 'employee' };
         let hqQuery = {};
-        let stockistQuery = {}; // Stockist usually linked to HQ? Assuming global for now or refine later
+        let stockistQuery = {};
         let doctorQuery = {};
 
-        if (hqId) {
+        // Scope Logic
+        if (employeeId) {
+            const user = await User.findById(employeeId);
+            if (user?.hq) {
+                // Show counts for their HQ
+                doctorQuery.hq = user.hq;
+                stockistQuery.hq = user.hq;
+            }
+        } else if (hqId) {
             employeeQuery.hq = hqId;
-            hqQuery._id = hqId; // If specific HQ selected, count is 1? Or maybe valid users in that HQ.
-            doctorQuery.hq = hqId; // Correct field name from model
+            hqQuery._id = hqId;
+            doctorQuery.hq = hqId;
+            stockistQuery.hq = hqId;
         }
 
         const totalEmployees = await User.countDocuments(employeeQuery);
-        const totalHQs = await require('../hq/hq.model').countDocuments(hqQuery); // Lazy require or move to top
+        const totalHQs = await require('../hq/hq.model').countDocuments(hqQuery);
         const totalStockists = await require('../stockist/stockist.model').countDocuments(stockistQuery);
-
-        // Count doctors
         const Doctor = require('../doctor/doctor.model');
         const totalDoctors = await Doctor.countDocuments(doctorQuery);
 
-        // 2. Get Analytics Data for Period
+        // 2. Activity Metrics (Live from CallReport)
+        const startDate = new Date(currentYear, currentMonth - 1, 1);
+        const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+        // Determine IDs to filter CallReport
+        let matchedEmployeeIds = null;
+        if (employeeId) {
+            matchedEmployeeIds = [employeeId];
+        } else if (hqId) {
+            // Find all employees in this HQ
+            const hqUsers = await User.find({ hq: hqId, role: 'employee' }).select('_id');
+            matchedEmployeeIds = hqUsers.map(u => u._id);
+        }
+
+        const activityQuery = {
+            createdAt: { $gte: startDate, $lte: endDate }
+        };
+        if (matchedEmployeeIds) {
+            activityQuery.employee = { $in: matchedEmployeeIds };
+        }
+
+        // Live Counts
+        const totalVisits = await CallReport.countDocuments(activityQuery);
+        const distinctReporters = await CallReport.distinct('employee', activityQuery);
+        const reportingCount = distinctReporters.length;
+
+        // 3. Top Performers (Live Aggregation)
+        let topPerformers = [];
+        if (!employeeId) {
+            // Aggregate visits by employee
+            topPerformers = await CallReport.aggregate([
+                { $match: activityQuery },
+                { $group: { _id: '$employee', visits: { $sum: 1 } } },
+                { $sort: { visits: -1 } },
+                { $limit: 5 },
+                { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+                { $unwind: '$user' },
+                {
+                    $project: {
+                        id: '$_id',
+                        name: '$user.name',
+                        visits: 1,
+                        score: { $literal: 0 } // Placeholder
+                    }
+                }
+            ]);
+        }
+
+        // 4. Performance Scores (Still from Analytics if exists)
         let analyticsQuery = {
             'period.year': parseInt(currentYear),
             'period.month': parseInt(currentMonth)
         };
-        if (hqId) analyticsQuery.hq = hqId;
+        if (employeeId) analyticsQuery.employee = employeeId;
+        else if (hqId) analyticsQuery.hq = hqId;
 
-        const analytics = await Analytics.find(analyticsQuery).populate('employee', 'name');
-
-        // 3. Aggregate Performance Metrics
-        const totalVisits = analytics.reduce((sum, a) => sum + (a.visitFrequency?.totalVisits || 0), 0);
-
-        // Calculate average completion across all reporting employees
-        const avgCompletion = analytics.length > 0
-            ? analytics.reduce((sum, a) => sum + (parseFloat(a.performance?.overallScore) || 0), 0) / analytics.length
+        const analyticsDocs = await Analytics.find(analyticsQuery);
+        const avgCompletion = analyticsDocs.length > 0
+            ? analyticsDocs.reduce((sum, a) => sum + (parseFloat(a.performance?.overallScore) || 0), 0) / analyticsDocs.length
             : 0;
 
-        // Top Performers
-        const topPerformers = analytics
-            .sort((a, b) => (b.visitFrequency?.totalVisits || 0) - (a.visitFrequency?.totalVisits || 0))
-            .slice(0, 5)
-            .map(a => ({
-                id: a.employee?._id,
-                name: a.employee?.name || 'Unknown',
-                visits: a.visitFrequency?.totalVisits || 0,
-                score: a.performance?.overallScore || 0
-            }));
+        // Populate scores into topPerformers if available
+        if (topPerformers.length > 0 && analyticsDocs.length > 0) {
+            topPerformers.forEach(tp => {
+                const analytics = analyticsDocs.find(a => a.employee?.toString() === tp.id.toString());
+                if (analytics) {
+                    tp.score = analytics.performance?.overallScore || 0;
+                }
+            });
+        }
+
+        // 5. HQ Statistics (Live)
+        let hqDistribution = [];
+        let hqPerformance = [];
+
+        if (!employeeId) {
+            // HQ Distribution based on User roles
+            hqDistribution = await User.aggregate([
+                { $match: { role: 'employee', hq: { $exists: true } } },
+                { $group: { _id: '$hq', count: { $sum: 1 } } },
+                { $lookup: { from: 'hqs', localField: '_id', foreignField: '_id', as: 'hqDetails' } },
+                { $unwind: '$hqDetails' },
+                { $project: { name: '$hqDetails.name', count: 1 } }
+            ]);
+
+            // HQ Performance based on CallReport activity
+            hqPerformance = await CallReport.aggregate([
+                { $match: activityQuery },
+                { $group: { _id: '$employee', visits: { $sum: 1 } } },
+                { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+                { $unwind: '$user' },
+                {
+                    $group: {
+                        _id: '$user.hq',
+                        totalVisits: { $sum: '$visits' },
+                        employeeCount: { $sum: 1 }
+                    }
+                },
+                { $lookup: { from: 'hqs', localField: '_id', foreignField: '_id', as: 'hqDetails' } },
+                { $unwind: '$hqDetails' },
+                {
+                    $project: {
+                        name: '$hqDetails.name',
+                        avgVisits: { $divide: ['$totalVisits', '$employeeCount'] },
+                        avgScore: { $literal: 0 }
+                    }
+                }
+            ]);
+        }
 
         res.json({
             counts: {
@@ -256,11 +345,14 @@ exports.getDashboardSummary = async (req, res) => {
             periodMetrics: {
                 totalVisits,
                 avgCompletion: parseFloat(avgCompletion.toFixed(1)),
-                reportingCount: analytics.length
+                reportingCount
             },
-            topPerformers
+            topPerformers,
+            hqDistribution,
+            hqPerformance
         });
     } catch (error) {
+        console.error('Dashboard Summary Error:', error);
         res.status(500).json({ message: 'Error fetching summary', error: error.message });
     }
 };

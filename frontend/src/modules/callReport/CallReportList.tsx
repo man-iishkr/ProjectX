@@ -129,7 +129,7 @@ const CallReportList: React.FC = () => {
                                 <label className="text-sm font-medium mb-1 block">HQ</label>
                                 <select
                                     name="hqId"
-                                    className="w-full border rounded px-3 py-2 text-sm bg-background"
+                                    className="w-full border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700"
                                     value={filters.hqId}
                                     onChange={handleFilterChange}
                                 >
@@ -143,7 +143,7 @@ const CallReportList: React.FC = () => {
                             <label className="text-sm font-medium mb-1 block">Employee</label>
                             <select
                                 name="employeeId"
-                                className="w-full border rounded px-3 py-2 text-sm bg-background"
+                                className="w-full border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700"
                                 value={filters.employeeId}
                                 onChange={handleFilterChange}
                             >
