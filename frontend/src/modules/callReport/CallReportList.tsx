@@ -7,6 +7,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Calendar, Search, PhoneCall, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/ui/Modal';
 
 import ReportCall from './ReportCall';
 
@@ -104,19 +105,21 @@ const CallReportList: React.FC = () => {
             </div>
 
             {/* Report Call Modal */}
-            {showReportModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-                    <div className="relative w-full max-w-xl">
-                        <button
-                            onClick={() => { setShowReportModal(false); loadReports(); }}
-                            className="absolute -top-10 right-0 text-white hover:text-gray-200"
-                        >
-                            <X className="h-8 w-8" />
-                        </button>
-                        <ReportCall />
-                    </div>
+            <Modal
+                isOpen={showReportModal}
+                onClose={() => { setShowReportModal(false); loadReports(); }}
+                maxWidth="max-w-xl"
+            >
+                <div className="relative w-full">
+                    <button
+                        onClick={() => { setShowReportModal(false); loadReports(); }}
+                        className="absolute -top-2 -right-2 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                    <ReportCall />
                 </div>
-            )}
+            </Modal>
 
             {/* Filters */}
 

@@ -38,7 +38,7 @@ exports.login = async (req, res, next) => {
         const user = await User.findOne({ username }).select('+password').populate('hq', 'name');
 
         if (!user) {
-            console.log(`Login failed: User not found for username: ${username}`);
+
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
@@ -48,6 +48,15 @@ exports.login = async (req, res, next) => {
         if (!isMatch) {
             console.log(`Login failed: Password incorrect for username: ${username}`);
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        // Verify Role if provided (Restricts Admin/HQ/Employee specific logins)
+        if (req.body.role && user.role !== req.body.role) {
+            console.log(`Login failed: Role mismatch. Expected ${req.body.role}, found ${user.role}`);
+            return res.status(403).json({
+                success: false,
+                error: `Access denied. This login is restricted to ${req.body.role}s only.`
+            });
         }
 
         sendTokenResponse(user, 200, res);
@@ -76,7 +85,6 @@ const sendTokenResponse = (user, statusCode, res) => {
     const token = user.getSignedJwtToken();
 
     const options = {
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production', // Ensure it's false in dev
         sameSite: 'lax' // Helps with navigation

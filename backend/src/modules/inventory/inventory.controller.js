@@ -1,14 +1,29 @@
 const Inventory = require('./inventory.model');
 const Product = require('./product.model');
 const Stockist = require('../stockist/stockist.model');
+const { client, get, set, del } = require('../../config/redis');
 
 // @desc    Get all products
 // @route   GET /api/v1/inventory/products
 // @access  Private
 exports.getProducts = async (req, res, next) => {
     try {
+        // Check Cache
+        const cacheKey = 'products:all';
+        const cachedProducts = await get(cacheKey);
+
+        if (cachedProducts) {
+            return res.status(200).json(cachedProducts);
+        }
+
         const products = await Product.find();
-        res.status(200).json({ success: true, count: products.length, data: products });
+
+        const response = { success: true, count: products.length, data: products };
+
+        // Cache for 24 hours (products change rarely)
+        await set(cacheKey, response, 86400);
+
+        res.status(200).json(response);
     } catch (err) {
         next(err);
     }
@@ -20,6 +35,10 @@ exports.getProducts = async (req, res, next) => {
 exports.createProduct = async (req, res, next) => {
     try {
         const product = await Product.create(req.body);
+
+        // Invalidate cache
+        await del('products:*');
+
         res.status(201).json({ success: true, data: product });
     } catch (err) {
         next(err);

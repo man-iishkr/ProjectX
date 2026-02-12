@@ -71,7 +71,7 @@ const StockistList: React.FC = () => {
                 <div className="flex gap-4">
                     {user?.role === 'admin' && (
                         <select
-                            className="border rounded px-2 py-1"
+                            className="border rounded px-2 py-1 bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                             value={selectedHQ}
                             onChange={(e) => setSelectedHQ(e.target.value)}
                         >

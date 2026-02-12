@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Table from '../../components/Table';
-import { getDoctors, deleteDoctor, updateDoctor } from '../../api/doctor.api';
-import { getHQs } from '../../api/hq.api';
 import DoctorForm from './DoctorForm';
 import { useAuth } from '../../context/AuthContext';
+import { useDoctors, useDeleteDoctor, useUpdateDoctor } from '../../hooks/useDoctors';
+import { useHQs } from '../../hooks/useHQs';
 
 interface DoctorListProps {
     hideAddButton?: boolean;
@@ -12,51 +12,25 @@ interface DoctorListProps {
 
 const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 'Doctors' }) => {
     const { user } = useAuth();
-    const [doctors, setDoctors] = useState<any[]>([]);
-    const [hqs, setHQs] = useState<any[]>([]);
     const [selectedHQ, setSelectedHQ] = useState('');
-    const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingDoctor, setEditingDoctor] = useState<any>(null);
 
-    useEffect(() => {
-        loadData();
-    }, [selectedHQ]);
+    const { data: doctors, isLoading: loading } = useDoctors(selectedHQ);
+    const { data: hqs } = useHQs();
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const promises: Promise<any>[] = [getDoctors(selectedHQ)];
-            if (user?.role === 'admin' && hqs.length === 0) {
-                promises.push(getHQs());
-            }
-
-            const [doctorsRes, hqsRes] = await Promise.all(promises);
-
-            if (doctorsRes.success) {
-                setDoctors(doctorsRes.data);
-            }
-            if (hqsRes && hqsRes.success) {
-                setHQs(hqsRes.data);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const deleteDoctorMutation = useDeleteDoctor();
+    const updateDoctorMutation = useUpdateDoctor();
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure?')) {
-            await deleteDoctor(id);
-            loadData();
+            await deleteDoctorMutation.mutateAsync(id);
         }
     };
 
     const handleApprove = async (id: string) => {
         if (window.confirm('Approve this doctor?')) {
-            await updateDoctor(id, { approvalStatus: 'Approved' });
-            loadData();
+            await updateDoctorMutation.mutateAsync({ id, data: { approvalStatus: 'Approved' } });
         }
     };
 
@@ -71,7 +45,8 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
     };
 
     const handleFormSuccess = () => {
-        loadData();
+        // refetch not needed as query invalidation handles it
+        setShowForm(false);
     };
 
     if (loading) return <div>Loading...</div>;
@@ -88,7 +63,7 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                             onChange={(e) => setSelectedHQ(e.target.value)}
                         >
                             <option value="">All HQs</option>
-                            {hqs.map((hq: any) => (
+                            {(hqs || []).map((hq: any) => (
                                 <option key={hq._id} value={hq._id}>
                                     {hq.name}
                                 </option>
@@ -107,7 +82,7 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
             </div>
 
             <Table
-                data={doctors}
+                data={doctors || []}
                 columns={[
                     { header: 'SrNo', accessor: (_, index) => index + 1 },
                     { header: 'Dr Name', accessor: 'name' },

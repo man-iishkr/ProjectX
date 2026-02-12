@@ -158,30 +158,36 @@ const Header: React.FC = () => {
                                 className="fixed inset-0 z-40 bg-transparent"
                                 onClick={() => setShowProfileDropdown(false)}
                             ></div>
-                            <div className="absolute right-0 mt-2 w-56 bg-card border border-border shadow-lg rounded-md p-1 z-50">
-                                <div className="px-2 py-1.5 text-sm font-semibold border-b border-border mb-1">
+                            <div className="absolute right-0 mt-2 w-56 bg-card border border-border shadow-lg rounded-md p-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="px-2 py-1.5 text-sm font-semibold border-b border-border mb-1 text-foreground">
                                     My Account
                                 </div>
-                                <div
-                                    className="flex items-center justify-between px-2 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+
+                                <button
+                                    className="w-full flex items-center justify-between px-2 py-2 text-sm cursor-pointer hover:bg-muted text-foreground rounded-sm transition-colors"
                                     onClick={() => setIsDarkMode(!isDarkMode)}
                                 >
                                     <span className="flex items-center gap-2">
                                         {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                                        Dark Mode
+                                        <span className="font-medium">Dark Mode</span>
                                     </span>
-                                    <div className={`w-9 h-5 rounded-full relative transition-colors ${isDarkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${isDarkMode ? 'translate-x-4.5' : 'translate-x-0.5'}`} style={{ transform: isDarkMode ? 'translateX(18px)' : 'translateX(2px)' }}></div>
+                                    <div className={`w-9 h-5 rounded-full relative transition-colors ${isDarkMode ? 'bg-primary' : 'bg-input'}`}>
+                                        <div
+                                            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow-sm transition-transform duration-200"
+                                            style={{ transform: isDarkMode ? 'translateX(16px)' : 'translateX(0)' }}
+                                        />
                                     </div>
-                                </div>
-                                <div className="border-t border-border my-1"></div>
-                                <div
-                                    className="flex items-center gap-2 px-2 py-2 text-sm cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 rounded-sm transition-colors"
+                                </button>
+
+                                <div className="my-1 border-t border-border" />
+
+                                <button
+                                    className="w-full flex items-center gap-2 px-2 py-2 text-sm cursor-pointer hover:bg-destructive/10 text-destructive rounded-sm transition-colors"
                                     onClick={handleLogout}
                                 >
                                     <LogOut className="h-4 w-4" />
-                                    Log out
-                                </div>
+                                    <span className="font-medium">Log out</span>
+                                </button>
                             </div>
                         </>
                     )}

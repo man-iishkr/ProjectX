@@ -81,13 +81,9 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
         try {
             // Get Coords
             const details = await getPlaceDetails(suggestion.eLoc, fullAddress);
-            console.log('Place Details:', details); // Debug Log
-
             if (details) {
                 const lat = details.latitude || details.lat || (details.geometry?.location?.lat); // Try multiple formats
                 const lng = details.longitude || details.lng || (details.geometry?.location?.lng);
-
-                console.log('Extracted Lat/Lng:', lat, lng); // Debug Log
 
                 let finalAddress = fullAddress;
                 if (details.digipin) {
@@ -115,7 +111,7 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
                     value={query}
                     onChange={(e) => handleSearch(e.target.value)}
                     placeholder={placeholder}
-                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
                 <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                 {loading && (
@@ -124,18 +120,18 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
             </div>
 
             {isOpen && suggestions.length > 0 && (
-                <ul className="absolute z-50 w-full bg-white border rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
+                <ul className="absolute z-50 w-full bg-card dark:bg-gray-800 border dark:border-gray-700 rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
                     {suggestions.map((s) => (
                         <li
                             key={s.eLoc}
                             onClick={() => handleSelect(s)}
-                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-0"
+                            className="p-2 hover:bg-muted/50 dark:hover:bg-gray-700 cursor-pointer text-sm border-b dark:border-gray-700 last:border-0"
                         >
-                            <div className="font-medium">{s.placeName}</div>
-                            <div className="text-xs text-gray-500 truncate">{s.placeAddress}</div>
+                            <div className="font-medium text-foreground">{s.placeName}</div>
+                            <div className="text-xs text-muted-foreground truncate">{s.placeAddress}</div>
                         </li>
                     ))}
-                    <div className="p-1 px-2 text-[10px] text-right text-gray-400 bg-gray-50">
+                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/30">
                         Powered by MapmyIndia
                     </div>
                 </ul>

@@ -3,7 +3,8 @@ import Table from '../../components/Table';
 import { getProducts, createProduct } from '../../api/inventory.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import Modal from '../../components/ui/Modal';
 
 const ProductList: React.FC = () => {
     const [products, setProducts] = useState<any[]>([]);
@@ -73,61 +74,53 @@ const ProductList: React.FC = () => {
                 ]}
             />
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-background p-6 rounded-lg w-full max-w-md shadow-lg relative">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <h3 className="text-xl font-bold mb-4">Add Product</h3>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Product Name</label>
-                                <Input
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Product Code</label>
-                                <Input
-                                    name="code"
-                                    value={formData.code}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Unit Price (₹)</label>
-                                <Input
-                                    name="unitPrice"
-                                    type="number"
-                                    value={formData.unitPrice}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit">
-                                    Create
-                                </Button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Add Product"
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Product Name</label>
+                        <Input
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                        />
                     </div>
-                </div>
-            )}
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Product Code</label>
+                        <Input
+                            name="code"
+                            value={formData.code}
+                            onChange={handleInputChange}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Unit Price (₹)</label>
+                        <Input
+                            name="unitPrice"
+                            type="number"
+                            value={formData.unitPrice}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-6">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            Create
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

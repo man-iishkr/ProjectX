@@ -101,12 +101,12 @@ const SalaryList: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Salary Management</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Salary Management</h1>
                 <div className="flex gap-2">
                     <select
                         value={year}
                         onChange={(e) => setYear(Number(e.target.value))}
-                        className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="h-10 rounded-md border border-slate-300 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {[2024, 2025, 2026, 2027].map(y => (
                             <option key={y} value={y}>{y}</option>
@@ -115,7 +115,7 @@ const SalaryList: React.FC = () => {
                     <select
                         value={month}
                         onChange={(e) => setMonth(Number(e.target.value))}
-                        className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="h-10 rounded-md border border-slate-300 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                             <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('default', { month: 'long' })}</option>
@@ -126,23 +126,23 @@ const SalaryList: React.FC = () => {
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-xl border bg-white text-slate-900 shadow p-6">
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
                     <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-sm font-medium text-slate-500">Total Payroll</h3>
-                        <DollarSign className="h-4 w-4 text-slate-500" />
+                        <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Total Payroll</h3>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="text-2xl font-bold">₹{stats?.totalPayroll?.toLocaleString() || 0}</div>
                 </div>
-                <div className="rounded-xl border bg-white text-slate-900 shadow p-6">
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
                     <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-sm font-medium text-slate-500">Processed</h3>
-                        <FileText className="h-4 w-4 text-slate-500" />
+                        <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Processed</h3>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="text-2xl font-bold">{stats?.paymentStatus?.processed || 0} / {employees.length}</div>
                 </div>
             </div>
 
-            <div className="rounded-md border bg-white">
+            <div className="rounded-md border bg-card">
                 <Table
                     data={getTableData()}
                     columns={[

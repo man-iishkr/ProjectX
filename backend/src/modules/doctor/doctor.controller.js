@@ -1,6 +1,7 @@
 const Doctor = require('./doctor.model');
 const Route = require('../route/route.model');
 const { getRoadDistance } = require('../../utils/roadDistance');
+const { client, get, set, del } = require('../../config/redis');
 
 // @desc    Add new doctor
 // @route   POST /api/v1/doctors
@@ -71,7 +72,7 @@ exports.createDoctor = async (req, res, next) => {
                 try {
                     const dist = await getRoadDistance(req.body.routeFrom, req.body.routeTo);
                     req.body.distance = dist;
-                    console.log(`Road distance ${req.body.routeFrom} -> ${req.body.routeTo}: ${dist} km`);
+
                 } catch (distErr) {
                     console.error('Road distance calc failed:', distErr.message);
                     req.body.distance = 0;
@@ -80,6 +81,9 @@ exports.createDoctor = async (req, res, next) => {
         }
 
         const doctor = await Doctor.create(req.body);
+
+        // Invalidate cache
+        await del('doctors:*');
 
         res.status(201).json({
             success: true,
@@ -103,6 +107,14 @@ exports.getDoctors = async (req, res, next) => {
     try {
         let query;
 
+        // Check Cache
+        const cacheKey = `doctors:${req.user.hq || 'all'}:${JSON.stringify(req.query)}`;
+        const cachedDocs = await get(cacheKey);
+
+        if (cachedDocs) {
+            return res.status(200).json(cachedDocs);
+        }
+
         // Admin sees all, HQ sees own, Employee sees own HQ's doctors
         if (req.user.role === 'admin') {
             let filter = {};
@@ -118,11 +130,16 @@ exports.getDoctors = async (req, res, next) => {
 
         const doctors = await query;
 
-        res.status(200).json({
+        const response = {
             success: true,
             count: doctors.length,
             data: doctors
-        });
+        };
+
+        // Cache for 1 hour
+        await set(cacheKey, response, 3600);
+
+        res.status(200).json(response);
     } catch (err) {
         next(err);
     }
@@ -234,7 +251,6 @@ exports.updateDoctor = async (req, res, next) => {
                 try {
                     const dist = await getRoadDistance(newRouteFrom, newRouteTo);
                     req.body.distance = dist;
-                    console.log(`Updated road distance ${newRouteFrom} -> ${newRouteTo}: ${dist} km`);
                 } catch (distErr) {
                     console.error('Road distance calc failed:', distErr.message);
                 }
@@ -245,6 +261,9 @@ exports.updateDoctor = async (req, res, next) => {
             new: true,
             runValidators: true
         });
+
+        // Invalidate cache
+        await del('doctors:*');
 
         res.status(200).json({
             success: true,
@@ -275,6 +294,9 @@ exports.deleteDoctor = async (req, res, next) => {
         }
 
         await doctor.deleteOne();
+
+        // Invalidate cache
+        await del('doctors:*');
 
         res.status(200).json({
             success: true,

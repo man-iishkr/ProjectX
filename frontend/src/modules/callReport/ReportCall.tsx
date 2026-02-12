@@ -198,7 +198,7 @@ const ReportCall: React.FC = () => {
                     <select
                         value={selectedDoctorId}
                         onChange={handleDoctorChange}
-                        className="w-full border p-2 rounded"
+                        className="w-full border p-2 rounded bg-background"
                     >
                         <option value="">-- Choose Doctor --</option>
                         {doctors.map(d => (
@@ -209,7 +209,7 @@ const ReportCall: React.FC = () => {
 
                 {/* 2. Verify Location */}
                 {selectedDoctor && (
-                    <div className="bg-slate-50 p-4 rounded-lg border">
+                    <div className="bg-muted/50 p-4 rounded-lg border">
                         <h4 className="font-semibold text-sm mb-2">Location Verification</h4>
                         <p className="text-xs text-muted-foreground mb-4">
                             You must be within 20 meters of the doctor's clinic to submit a report.
@@ -258,9 +258,9 @@ const ReportCall: React.FC = () => {
                         {/* Products Multi-Select */}
                         <div>
                             <label className="block text-sm font-medium mb-2">Discussed Products</label>
-                            <div className="border rounded p-3 h-40 overflow-y-auto grid grid-cols-2 gap-2 bg-slate-50">
+                            <div className="border rounded p-3 h-40 overflow-y-auto grid grid-cols-2 gap-2 bg-muted/50">
                                 {products.map(product => (
-                                    <label key={product._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                    <label key={product._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent p-1 rounded">
                                         <input
                                             type="checkbox"
                                             checked={selectedProductIds.includes(product._id)}
@@ -277,7 +277,7 @@ const ReportCall: React.FC = () => {
                         <div>
                             <label className="block text-sm font-medium mb-1">Call Notes</label>
                             <textarea
-                                className="w-full border p-2 rounded"
+                                className="w-full border p-2 rounded bg-background"
                                 placeholder="Enter call details..."
                                 rows={3}
                                 value={remarks}

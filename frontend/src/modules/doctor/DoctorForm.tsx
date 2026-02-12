@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { createDoctor, updateDoctor } from '../../api/doctor.api';
-import { getHQs } from '../../api/hq.api';
 import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
 import HybridRouteSearch from '../../components/HybridRouteSearch';
 import { getReverseGeoCode, getPlaceDetails } from '../../api/mappls.api';
 import { useAuth } from '../../context/AuthContext';
-import { getProducts } from '../../api/inventory.api';
+import Modal from '../../components/ui/Modal';
+import { useHQs } from '../../hooks/useHQs';
+import { useProducts } from '../../hooks/useProducts';
+import { useCreateDoctor, useUpdateDoctor } from '../../hooks/useDoctors';
 
 // Haversine formula to calculate distance (in km)
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -63,16 +64,19 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         approvalStatus: 'Pending',
         distance: 0
     });
-    const [hqs, setHQs] = useState<any[]>([]);
-    const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+
+    const { data: hqs } = useHQs();
+    const { data: availableProducts } = useProducts();
+
+    const createDoctorMutation = useCreateDoctor();
+    const updateDoctorMutation = useUpdateDoctor();
+
     const [routeCoords, setRouteCoords] = useState<{
         from: { lat: number, lng: number } | null,
         to: { lat: number, lng: number } | null
     }>({ from: null, to: null });
 
     useEffect(() => {
-        loadHQs();
-        loadProducts();
         if (initialData) {
             setFormData({
                 ...formData,
@@ -83,34 +87,12 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         }
     }, [initialData]);
 
-    const loadProducts = async () => {
-        try {
-            const res = await getProducts();
-            if (res.success) {
-                setAvailableProducts(res.data);
-            }
-        } catch (err) {
-            console.error('Failed to load products', err);
-        }
-    };
-
     useEffect(() => {
         if (routeCoords.from && routeCoords.to) {
             const dist = calculateDistance(routeCoords.from.lat, routeCoords.from.lng, routeCoords.to.lat, routeCoords.to.lng);
             setFormData(prev => ({ ...prev, distance: dist }));
         }
     }, [routeCoords]);
-
-    const loadHQs = async () => {
-        try {
-            const res = await getHQs();
-            if (res.success) {
-                setHQs(res.data);
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
 
     const handleRouteSelect = async (type: 'from' | 'to', address: string, data: any) => {
         setFormData(prev => ({ ...prev, [type === 'from' ? 'routeFrom' : 'routeTo']: address }));
@@ -226,9 +208,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         e.preventDefault();
         try {
             if (initialData) {
-                await updateDoctor(initialData._id, formData);
+                await updateDoctorMutation.mutateAsync({ id: initialData._id, data: formData });
             } else {
-                await createDoctor(formData);
+                await createDoctorMutation.mutateAsync(formData);
             }
             onSuccess();
             onClose();
@@ -239,7 +221,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
     };
 
     const formContent = (
-        <div className={`bg-card p-6 rounded-lg w-full max-w-4xl ${isModal ? 'my-8' : 'border shadow-sm'}`}>
+        <div className={`w-full ${!isModal ? 'border shadow-sm p-6 rounded-lg bg-card' : ''}`}>
             <h2 className="text-xl font-bold mb-4">
                 {initialData ? 'Edit Doctor' : 'Add Doctor'}
             </h2>
@@ -248,11 +230,11 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 {/* Basic Info */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Dr Name *</label>
-                    <input name="name" value={formData.name} onChange={handleChange} className="w-full border p-2 rounded bg-background" required />
+                    <input name="name" value={formData.name} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" required />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Dr Code</label>
-                    <input name="code" value={formData.code} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="code" value={formData.code} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
 
                 {/* Location */}
@@ -263,19 +245,19 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                             name="hq"
                             value={formData.hq || (user?.role === 'hq' ? user.hq : '')}
                             onChange={handleChange}
-                            className="w-full border p-2 rounded bg-background disabled:bg-muted disabled:text-muted-foreground"
+                            className="w-full border p-2 rounded bg-background text-foreground disabled:bg-muted disabled:text-muted-foreground"
                             required
                             disabled={user?.role === 'hq'}
                         >
                             <option value="">Select HQ</option>
-                            {hqs.map(hq => (
+                            {(hqs || []).map((hq: any) => (
                                 <option key={hq._id} value={hq._id}>{hq.name}</option>
                             ))}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Date</label>
-                        <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                        <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                     </div>
                 </div>
 
@@ -288,8 +270,8 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         className="w-full"
                         hqId={formData.hq}
                         locationBias={
-                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                            (hqs || []).find((h: any) => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[1]},${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[0]}`
                                 : undefined
                         }
                     />
@@ -303,30 +285,30 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         className="w-full"
                         hqId={formData.hq}
                         locationBias={
-                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                            (hqs || []).find((h: any) => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[1]},${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[0]}`
                                 : undefined
                         }
                     />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Area *</label>
-                    <input name="area" value={formData.area} onChange={handleChange} className="w-full border p-2 rounded bg-background" required />
+                    <input name="area" value={formData.area} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" required />
                 </div>
 
                 {/* Professional Info */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Speciality *</label>
-                    <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded bg-background" required />
+                    <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" required />
                 </div>
 
                 {/* Product Selection */}
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-1">Promoted Products</label>
-                    <div className="border rounded p-3 bg-background/50">
+                    <div className="border rounded p-3 bg-background text-foreground/50">
                         <div className="flex flex-wrap gap-2 mb-2">
                             {formData.products.map(prodId => {
-                                const prod = availableProducts.find(p => p._id === prodId);
+                                const prod = (availableProducts || []).find((p: any) => p._id === prodId);
                                 return (
                                     <span key={prodId} className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-100 text-xs px-2 py-1 rounded-full flex items-center gap-1">
                                         {prod?.name || 'Unknown'}
@@ -347,7 +329,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         </div>
 
                         <select
-                            className="w-full border p-2 rounded bg-background"
+                            className="w-full border p-2 rounded bg-background text-foreground"
                             onChange={(e) => {
                                 const val = e.target.value;
                                 if (val && !formData.products.includes(val)) {
@@ -360,9 +342,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                             }}
                         >
                             <option value="">+ Add Product...</option>
-                            {availableProducts
-                                .filter(p => !formData.products.includes(p._id))
-                                .map(p => (
+                            {(availableProducts || [])
+                                .filter((p: any) => !formData.products.includes(p._id))
+                                .map((p: any) => (
                                     <option key={p._id} value={p._id}>{p.name}</option>
                                 ))
                             }
@@ -371,7 +353,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Class</label>
-                    <select name="class" value={formData.class} onChange={handleChange} className="w-full border p-2 rounded bg-background">
+                    <select name="class" value={formData.class} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground">
                         <option value="General">General</option>
                         <option value="Core">Core</option>
                         <option value="Super Core">Super Core</option>
@@ -380,7 +362,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Frequency</label>
-                    <input type="number" name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border p-2 rounded bg-background" min="1" />
+                    <input type="number" name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" min="1" />
                 </div>
 
                 {/* Contact - Addresses */}
@@ -392,8 +374,8 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         placeholder="Search Clinic Location..."
                         className="w-full"
                         locationBias={
-                            hqs.find(h => h._id === formData.hq)?.coordinates?.coordinates
-                                ? `${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[1]},${hqs.find(h => h._id === formData.hq)?.coordinates.coordinates[0]}`
+                            (hqs || []).find((h: any) => h._id === formData.hq)?.coordinates?.coordinates
+                                ? `${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[1]},${(hqs || []).find((h: any) => h._id === formData.hq)?.coordinates.coordinates[0]}`
                                 : undefined
                         }
                     />
@@ -428,41 +410,41 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 {/* Auto-filled Fields */}
                 <div>
                     <label className="block text-sm font-medium mb-1">City</label>
-                    <input name="city" value={formData.city} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="city" value={formData.city} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">State</label>
-                    <input name="state" value={formData.state} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="state" value={formData.state} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Pincode</label>
-                    <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
 
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-1">Residential Address</label>
-                    <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="residentialAddress" value={formData.residentialAddress} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
 
                 {/* Contact - Phones */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Mobile *</label>
-                    <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full border p-2 rounded bg-background" required />
+                    <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" required />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Phone</label>
-                    <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="phone" value={formData.phone} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Email</label>
-                    <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded bg-background" />
+                    <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
 
                 {/* Admin Status */}
 
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-1">Rejected Remark</label>
-                    <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded bg-background" placeholder="Reason for rejection (if any)" />
+                    <input name="rejectedRemark" value={formData.rejectedRemark} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" placeholder="Reason for rejection (if any)" />
                 </div>
 
                 <div className="md:col-span-2 flex justify-end gap-2 mt-4">
@@ -475,9 +457,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
 
     if (isModal) {
         return (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <Modal isOpen={true} onClose={onClose} maxWidth="max-w-4xl">
                 {formContent}
-            </div >
+            </Modal>
         );
     }
     return formContent;

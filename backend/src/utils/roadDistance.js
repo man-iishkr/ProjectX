@@ -61,7 +61,7 @@ async function geocodePlace(placeName) {
 
         if (response.data && response.data.length > 0) {
             const result = response.data[0];
-            console.log(`Geocoded "${placeName}" -> ${result.lat}, ${result.lon}`);
+
             return {
                 lat: parseFloat(result.lat),
                 lng: parseFloat(result.lon)
@@ -97,7 +97,7 @@ async function getOSRMDistance(origin, destination) {
             return distanceKm;
         }
 
-        console.warn('OSRM returned no routes');
+
         return 0;
     } catch (error) {
         console.error('OSRM routing error:', error.message);

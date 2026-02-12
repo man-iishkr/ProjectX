@@ -24,46 +24,46 @@ const TargetSection: React.FC = () => {
             <CardContent className="space-y-4">
                 {/* Target Overview */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/10 p-4 rounded-lg border border-blue-200 dark:border-blue-900/50">
                         <div className="flex items-center gap-2 mb-2">
-                            <TargetIcon className="h-5 w-5 text-blue-600" />
-                            <span className="text-xs font-medium text-blue-900">Monthly Target</span>
+                            <TargetIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs font-medium text-blue-900 dark:text-blue-200">Monthly Target</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-700">₹5,00,000</div>
-                        <div className="text-xs text-blue-600 mt-1">Target set for current month</div>
+                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">₹5,00,000</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Target set for current month</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/10 p-4 rounded-lg border border-green-200 dark:border-green-900/50">
                         <div className="flex items-center gap-2 mb-2">
-                            <TargetIcon className="h-5 w-5 text-green-600" />
-                            <span className="text-xs font-medium text-green-900">Achieved</span>
+                            <TargetIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <span className="text-xs font-medium text-green-900 dark:text-green-200">Achieved</span>
                         </div>
-                        <div className="text-2xl font-bold text-green-700">₹3,75,000</div>
-                        <div className="text-xs text-green-600 mt-1">75% of target achieved</div>
+                        <div className="text-2xl font-bold text-green-700 dark:text-green-300">₹3,75,000</div>
+                        <div className="text-xs text-green-600 dark:text-green-400 mt-1">75% of target achieved</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-900/10 p-4 rounded-lg border border-purple-200 dark:border-purple-900/50">
                         <div className="flex items-center gap-2 mb-2">
-                            <MapPin className="h-5 w-5 text-purple-600" />
-                            <span className="text-xs font-medium text-purple-900">Regions</span>
+                            <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            <span className="text-xs font-medium text-purple-900 dark:text-purple-200">Regions</span>
                         </div>
-                        <div className="text-2xl font-bold text-purple-700">8/10</div>
-                        <div className="text-xs text-purple-600 mt-1">Regions covered</div>
+                        <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">8/10</div>
+                        <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">Regions covered</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
+                    <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-900/10 p-4 rounded-lg border border-amber-200 dark:border-amber-900/50">
                         <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-5 w-5 text-amber-600" />
-                            <span className="text-xs font-medium text-amber-900">Factories</span>
+                            <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                            <span className="text-xs font-medium text-amber-900 dark:text-amber-200">Factories</span>
                         </div>
-                        <div className="text-2xl font-bold text-amber-700">4</div>
-                        <div className="text-xs text-amber-600 mt-1">Factory assignments</div>
+                        <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">4</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">Factory assignments</div>
                     </div>
                 </div>
 
                 {/* Target List */}
                 <div className="border rounded-lg">
-                    <div className="p-3 bg-slate-50 border-b">
+                    <div className="p-3 bg-muted/50 border-b">
                         <h4 className="font-semibold text-sm">Target List</h4>
                     </div>
                     <div className="divide-y">
@@ -73,7 +73,7 @@ const TargetSection: React.FC = () => {
                             { category: 'Product Sales', target: 100, achieved: 75, percentage: 75 },
                             { category: 'New Registrations', target: 10, achieved: 7, percentage: 70 }
                         ].map((item, index) => (
-                            <div key={index} className="p-3 hover:bg-slate-50 transition-colors">
+                            <div key={index} className="p-3 hover:bg-muted/50 transition-colors">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-sm">{item.category}</span>
                                     <span className="text-xs text-muted-foreground">
@@ -84,8 +84,8 @@ const TargetSection: React.FC = () => {
                                     <div className="flex-1 bg-slate-200 rounded-full h-2">
                                         <div
                                             className={`h-2 rounded-full ${item.percentage >= 80 ? 'bg-green-500' :
-                                                    item.percentage >= 60 ? 'bg-blue-500' :
-                                                        'bg-amber-500'
+                                                item.percentage >= 60 ? 'bg-blue-500' :
+                                                    'bg-amber-500'
                                                 }`}
                                             style={{ width: `${item.percentage}%` }}
                                         ></div>

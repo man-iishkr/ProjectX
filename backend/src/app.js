@@ -9,16 +9,10 @@ const cookieParser = require('cookie-parser');
 const app = express();
 
 // Basic Logger
-app.use((req, res, next) => {
-    console.log(`[REQ] ${req.method} ${req.url}`, req.body && Object.keys(req.body).length > 0 ? req.body : '');
-
-    const start = Date.now();
-    res.on('finish', () => {
-        const duration = Date.now() - start;
-        console.log(`[RES] ${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
-    });
-    next();
-});
+// Basic Logger
+// app.use((req, res, next) => {
+//     next();
+// });
 
 // Middleware
 app.use(express.json());

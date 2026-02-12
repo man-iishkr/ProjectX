@@ -107,7 +107,7 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
                     value={query}
                     onChange={(e) => handleSearch(e.target.value)}
                     placeholder={placeholder}
-                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
                 <div className="absolute left-2 top-2.5">
                     {loading ? (
@@ -119,12 +119,12 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
             </div>
 
             {isOpen && suggestions.length > 0 && (
-                <ul className="absolute z-50 w-full bg-white border rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
+                <ul className="absolute z-50 w-full bg-card dark:bg-gray-800 border dark:border-gray-700 rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
                     {suggestions.map((s, idx) => (
                         <li
                             key={idx}
                             onClick={() => handleSelectSuggestion(s)}
-                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-0 flex items-center gap-2"
+                            className="p-2 hover:bg-muted/50 dark:hover:bg-gray-700 cursor-pointer text-sm border-b dark:border-gray-700 last:border-0 flex items-center gap-2"
                         >
                             {s.type === 'route' ? (
                                 <RouteIcon className="h-4 w-4 text-blue-500" />
@@ -133,13 +133,13 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
                             )}
 
                             <div>
-                                <div className="font-medium">{s.label}</div>
-                                {s.subLabel && <div className="text-xs text-gray-500 truncate">{s.subLabel}</div>}
+                                <div className="font-medium text-foreground">{s.label}</div>
+                                {s.subLabel && <div className="text-xs text-muted-foreground truncate">{s.subLabel}</div>}
                                 {s.type === 'route' && <div className="text-[10px] text-blue-400">Existing Route</div>}
                             </div>
                         </li>
                     ))}
-                    <div className="p-1 px-2 text-[10px] text-right text-gray-400 bg-gray-50">
+                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/30">
                         {suggestions[0]?.type === 'route' ? 'Local Routes' : 'MapmyIndia'}
                     </div>
                 </ul>

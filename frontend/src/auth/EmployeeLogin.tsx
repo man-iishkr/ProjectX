@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { User, Lock, ArrowRight, Activity, MapPin, Phone } from 'lucide-react';
+import { User, Lock, ArrowRight, Linkedin } from 'lucide-react';
 
 const EmployeeLogin: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -19,7 +19,7 @@ const EmployeeLogin: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            await login({ username, password });
+            await login({ username, password, role: 'employee' });
             navigate('/employee/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.error || 'Login failed. Please check your ID and password.');
@@ -29,19 +29,19 @@ const EmployeeLogin: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-center sm:py-12">
+        <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center sm:py-12">
             <div className="p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
 
                 {/* Brand Header */}
                 <div className="mb-8 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-400 mb-4 shadow-lg shadow-blue-200">
-                        <Activity className="w-8 h-8 text-white" />
+                    <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+                        <img src="/AppLogo.png" alt="SwaSarwam" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="font-bold text-3xl text-slate-800 mb-2">Field Force</h1>
-                    <p className="text-slate-500">Employee Portal</p>
+                    <h1 className="font-bold text-3xl text-slate-800 dark:text-foreground mb-2">SwaSarwam</h1>
+                    <p className="text-slate-500 dark:text-muted-foreground">Employee Portal</p>
                 </div>
 
-                <div className="bg-white shadow-xl w-full rounded-2xl divide-y divide-slate-100 overflow-hidden border border-slate-100">
+                <div className="bg-white dark:bg-card shadow-xl w-full rounded-2xl divide-y divide-slate-100 dark:divide-border overflow-hidden border border-slate-100 dark:border-border">
                     <div className="px-8 py-8">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {error && (
@@ -53,34 +53,34 @@ const EmployeeLogin: React.FC = () => {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Employee ID</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-foreground mb-1.5 block">Employee ID</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <User className="h-5 w-5 text-slate-400" />
+                                            <User className="h-5 w-5 text-slate-400 dark:text-muted-foreground" />
                                         </div>
                                         <Input
                                             type="text"
                                             placeholder="EMP-12345"
                                             value={username}
                                             onChange={(e) => setUsername(e.target.value)}
-                                            className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                            className="pl-10 h-12 bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-border focus:bg-white dark:focus:bg-muted/50 transition-colors dark:text-foreground"
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Password</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-foreground mb-1.5 block">Password</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Lock className="h-5 w-5 text-slate-400" />
+                                            <Lock className="h-5 w-5 text-slate-400 dark:text-muted-foreground" />
                                         </div>
                                         <Input
                                             type="password"
                                             placeholder="••••••••"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                            className="pl-10 h-12 bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-border focus:bg-white dark:focus:bg-muted/50 transition-colors dark:text-foreground"
                                             required
                                         />
                                     </div>
@@ -95,7 +95,7 @@ const EmployeeLogin: React.FC = () => {
                                         onChange={(e) => setRememberMe(e.target.checked)}
                                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors"
                                     />
-                                    <span className="text-sm text-slate-600">Remember me</span>
+                                    <span className="text-sm text-slate-600 dark:text-muted-foreground">Remember me</span>
                                 </label>
                                 <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                                     Forgot password?
@@ -118,11 +118,11 @@ const EmployeeLogin: React.FC = () => {
                         </form>
                     </div>
 
-                    <div className="px-8 py-6 bg-slate-50 text-center">
+                    <div className="px-8 py-6 bg-slate-50 dark:bg-muted/30 text-center">
                         <p className="text-sm text-slate-500 mb-4">Admin or HQ User?</p>
                         <Link
                             to="/login"
-                            className="inline-flex items-center justify-center text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors"
+                            className="inline-flex items-center justify-center text-sm font-medium text-slate-700 dark:text-foreground hover:text-blue-600 transition-colors"
                         >
                             Log in to Admin Portal
                         </Link>
@@ -130,24 +130,22 @@ const EmployeeLogin: React.FC = () => {
                 </div>
 
                 {/* Quick Help Footer */}
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-                        <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-2">
-                            <Phone className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-medium text-slate-600">Support</span>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2">
-                            <MapPin className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-medium text-slate-600">Check In</span>
-                    </div>
-                </div>
+
 
                 <p className="text-center text-xs text-slate-400 mt-8">
-                    Field ERP Mobile v1.0.0
+                    SwaSarwam Mobile v1.0.0
                 </p>
+                <div className="mt-4 flex justify-center">
+                    <a
+                        href="https://www.linkedin.com/in/manish-kumar-linked"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium"
+                    >
+                        <Linkedin className="h-4 w-4" />
+                        Contact the Developer
+                    </a>
+                </div>
             </div>
         </div>
     );

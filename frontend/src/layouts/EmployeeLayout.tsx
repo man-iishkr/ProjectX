@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import {
     LayoutDashboard,
     User,
@@ -32,6 +33,7 @@ const EmployeeLayout: React.FC = () => {
                         <Outlet />
                     </div>
                 </main>
+                <Footer />
             </div>
         </div>
     );

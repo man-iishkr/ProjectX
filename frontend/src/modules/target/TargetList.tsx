@@ -142,14 +142,14 @@ const TargetList: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <div className="bg-card p-4 rounded-lg shadow mb-6 border">
                 <div className="flex items-center gap-4">
                     <div className="w-64">
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Filter by HQ</label>
+                        <label className="block text-sm font-medium mb-1 text-foreground">Filter by HQ</label>
                         <select
                             value={selectedHq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                             onChange={(e) => setSelectedHq(e.target.value)}
-                            className="w-full border p-2 rounded disabled:bg-gray-100"
+                            className="w-full border p-2 rounded disabled:bg-muted disabled:text-muted-foreground bg-background"
                             disabled={user?.role === 'hq'}
                         >
                             <option value="">All HQs</option>
@@ -159,11 +159,11 @@ const TargetList: React.FC = () => {
                         </select>
                     </div>
                     <div className="w-48">
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Filter by Year</label>
+                        <label className="block text-sm font-medium mb-1 text-foreground">Filter by Year</label>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="w-full border p-2 rounded"
+                            className="w-full border p-2 rounded bg-background"
                         >
                             {availableYears.map(y => (
                                 <option key={y} value={y}>{y}</option>

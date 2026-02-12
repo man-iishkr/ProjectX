@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import { X, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 
 interface SalarySlipProps {
     isOpen: boolean;
@@ -28,24 +29,27 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="relative w-full max-w-3xl rounded-lg bg-card shadow-xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b px-6 py-4">
-                    <h2 className="text-xl font-semibold">Salary Slip</h2>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handlePrint}>
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print
-                        </Button>
-                        <button onClick={onClose} className="rounded-full p-1 hover:bg-muted/10">
-                            <X className="h-5 w-5" />
-                        </button>
-                    </div>
+
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Salary Slip"
+            maxWidth="max-w-3xl"
+        >
+            <div className="max-h-[80vh] overflow-y-auto">
+                <div className="flex justify-end mb-4">
+                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print
+                    </Button>
                 </div>
 
-                <div className="p-8" ref={slipRef}>
+                <div className="p-8 border rounded-lg" ref={slipRef}>
                     <div className="mb-8 text-center border-b pb-6">
-                        <h1 className="text-2xl font-bold text-foreground">FIELD ERP COMPANY</h1>
+                        <div className="flex justify-center mb-4">
+                            <img src="/logo.png" alt="Azott Pharmaceuticals" className="h-16 object-contain" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-foreground">AZOTT PHARMACEUTICALS PVT LTD</h1>
                         <p className="text-muted-foreground">Corporate Office: Mumbai, India</p>
                         <h2 className="mt-4 text-lg font-semibold uppercase text-muted-foreground">
                             Payslip for {new Date(salary.period.year, salary.period.month - 1).toLocaleString('default', { month: 'long' })} {salary.period.year}
@@ -142,8 +146,9 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
+
 };
 
 export default SalarySlip;

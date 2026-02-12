@@ -3,7 +3,12 @@ import { getLeaves, createLeave, cancelLeave, approveLeave, rejectLeave } from '
 import { useAuth } from '../../context/AuthContext';
 import Table from '../../components/Table';
 import { Button } from '../../components/ui/Button';
-import { Plus, X, Check } from 'lucide-react';
+import { Plus, Check, X } from 'lucide-react';
+import Modal from '../../components/ui/Modal';
+
+interface LeaveListProps {
+    embedded?: boolean;
+}
 
 const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
     const { user } = useAuth();
@@ -23,9 +28,9 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
         loadLeaves();
     }, []);
 
-    const loadLeaves = async () => {
+    const loadLeaves = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const res = await getLeaves();
             if (res.success) {
                 setLeaves(res.data);
@@ -33,7 +38,7 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -43,7 +48,7 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
             await createLeave({ ...formData, employeeId: user._id }); // Backend might expect employeeId for admins creating, but usually req.user works
             setShowModal(false);
             setFormData({ leaveType: 'casual', startDate: '', endDate: '', reason: '' });
-            loadLeaves();
+            await loadLeaves(true); // Silent reload
         } catch (err) {
             console.error(err);
             alert('Failed to apply for leave');
@@ -91,10 +96,10 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
         {
             header: 'Status',
             accessor: (row: any) => (
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${row.status === 'approved' ? 'bg-green-100 text-green-700' :
-                    row.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                        row.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
-                            'bg-yellow-100 text-yellow-700'
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${row.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    row.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        row.status === 'cancelled' ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' :
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                     }`}>
                     {row.status.toUpperCase()}
                 </span>
@@ -107,7 +112,11 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-slate-900">Leave Management</h1>
+                {!embedded ? (
+                    <h1 className="text-2xl font-bold text-foreground">Leave Management</h1>
+                ) : (
+                    <div></div>
+                )}
                 <Button onClick={() => setShowModal(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Apply for Leave
@@ -142,72 +151,70 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
             />
 
             {/* Apply Leave Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold">Apply for Leave</h3>
-                            <button onClick={() => setShowModal(false)}><X className="h-5 w-5 text-gray-500" /></button>
-                        </div>
-
-                        <form onSubmit={handleCreate} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Leave Type</label>
-                                <select
-                                    className="w-full border rounded p-2"
-                                    value={formData.leaveType}
-                                    onChange={(e) => setFormData({ ...formData, leaveType: e.target.value })}
-                                >
-                                    <option value="casual">Casual Leave</option>
-                                    <option value="sick">Sick Leave</option>
-                                    <option value="earned">Earned Leave</option>
-                                    <option value="emergency">Emergency</option>
-                                    <option value="unpaid">Unpaid/LWP</option>
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Start Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full border rounded p-2"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">End Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full border rounded p-2"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Reason</label>
-                                <textarea
-                                    className="w-full border rounded p-2 h-24"
-                                    value={formData.reason}
-                                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                    placeholder="Please describe the reason..."
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex justify-end gap-2 pt-2">
-                                <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-                                <Button type="submit">Submit Request</Button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Apply for Leave"
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleCreate} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Leave Type</label>
+                        <select
+                            className="w-full border rounded p-2 bg-background"
+                            value={formData.leaveType}
+                            onChange={(e) => setFormData({ ...formData, leaveType: e.target.value })}
+                        >
+                            <option value="casual">Casual Leave</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="earned">Earned Leave</option>
+                            <option value="emergency">Emergency</option>
+                            <option value="unpaid">Unpaid/LWP</option>
+                        </select>
                     </div>
-                </div>
-            )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Start Date</label>
+                            <input
+                                type="date"
+                                className="w-full border rounded p-2 bg-background cursor-pointer"
+                                value={formData.startDate}
+                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                required
+                                min={new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">End Date</label>
+                            <input
+                                type="date"
+                                className="w-full border rounded p-2 bg-background cursor-pointer"
+                                value={formData.endDate}
+                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                required
+                                min={formData.startDate || new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Reason</label>
+                        <textarea
+                            className="w-full border rounded p-2 h-24 bg-background"
+                            value={formData.reason}
+                            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                            placeholder="Please describe the reason..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
+                        <Button type="submit">Submit Request</Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

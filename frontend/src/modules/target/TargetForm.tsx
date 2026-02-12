@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createBulkTargets } from '../../api/target.api';
 import { getHQs } from '../../api/hq.api';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/ui/Modal';
 
 interface TargetFormProps {
     onClose: () => void;
@@ -54,8 +55,8 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white p-6 rounded-lg w-full max-w-2xl my-8">
+        <Modal isOpen={true} onClose={onClose} maxWidth="max-w-2xl">
+            <div>
                 <h2 className="text-xl font-bold mb-4">Construct Annual Targets</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -65,7 +66,7 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
                             <select
                                 value={hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                                 onChange={(e) => setHq(e.target.value)}
-                                className="w-full border p-2 rounded disabled:bg-gray-100"
+                                className="w-full border p-2 rounded disabled:bg-muted disabled:text-muted-foreground bg-background text-foreground"
                                 required
                                 disabled={user?.role === 'hq'}
                             >
@@ -77,7 +78,7 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Select Year *</label>
-                            <select value={year} onChange={(e) => setYear(parseInt(e.target.value))} className="w-full border p-2 rounded" required>
+                            <select value={year} onChange={(e) => setYear(parseInt(e.target.value))} className="w-full border p-2 rounded bg-background text-foreground" required>
                                 {[0, 1, 2].map(offset => {
                                     const y = new Date().getFullYear() + offset;
                                     return <option key={y} value={y}>{y}</option>;
@@ -87,16 +88,16 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
                     </div>
 
                     <div className="border-t pt-4">
-                        <h3 className="font-semibold mb-3 text-sm text-gray-700">Monthly Targets (₹)</h3>
+                        <h3 className="font-semibold mb-3 text-sm text-foreground">Monthly Targets (₹)</h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {months.map((month, index) => (
                                 <div key={index}>
-                                    <label className="block text-xs font-medium mb-1 text-gray-500">{month}</label>
+                                    <label className="block text-xs font-medium mb-1 text-muted-foreground">{month}</label>
                                     <input
                                         type="number"
                                         value={targets[index] || ''}
                                         onChange={(e) => handleTargetChange(index, e.target.value)}
-                                        className="w-full border p-2 rounded text-sm"
+                                        className="w-full border p-2 rounded text-sm bg-background text-foreground"
                                         placeholder="0"
                                         required
                                     />
@@ -113,7 +114,7 @@ const TargetForm: React.FC<TargetFormProps> = ({ onClose, onSuccess }) => {
                     </div>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 };
 

@@ -24,7 +24,7 @@ import DataImport from './modules/admin-tools/DataImport';
 import CallReportList from './modules/callReport/CallReportList';
 import EmployeeProfile from './modules/employee/EmployeeProfile';
 import MyExpenses from './modules/expense/MyExpenses';
-import LeaveList from './modules/leave/LeaveList';
+
 import AddDoctor from './modules/doctor/AddDoctor';
 
 // Protect Routes Component

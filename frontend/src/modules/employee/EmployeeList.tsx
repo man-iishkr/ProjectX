@@ -4,8 +4,9 @@ import { getEmployees, deleteEmployee, createEmployee, updateEmployee } from '..
 import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { X, Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/ui/Modal';
 
 const EmployeeList: React.FC = () => {
     const { user } = useAuth();
@@ -140,7 +141,7 @@ const EmployeeList: React.FC = () => {
                 <div className="flex gap-4">
                     {user?.role === 'admin' && (
                         <select
-                            className="border rounded px-2 py-1"
+                            className="border rounded px-2 py-1 bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                             value={selectedHQ}
                             onChange={(e) => setSelectedHQ(e.target.value)}
                         >
@@ -187,158 +188,158 @@ const EmployeeList: React.FC = () => {
                 )}
             />
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-                    <div className="bg-background p-6 rounded-lg w-full max-w-2xl shadow-lg relative my-8">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <h3 className="text-xl font-bold mb-4">{isEditing ? 'Edit Employee' : 'Add Employee'}</h3>
-
-                        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Emp ID / Username</label>
-                                <Input
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Name</label>
-                                <Input
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-
-                            {!isEditing && (
-                                <div>
-                                    <label className="text-sm font-medium mb-1 block">Password</label>
-                                    <Input
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                        required={!isEditing}
-                                        minLength={6}
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Role</label>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <option value="employee">Employee</option>
-                                    <option value="hq">HQ Manager</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-
-                            {formData.role === 'employee' && (
-                                <div>
-                                    <label className="text-sm font-medium mb-1 block">Reporting HQ</label>
-                                    <select
-                                        name="hq"
-                                        value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
-                                        onChange={handleInputChange}
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                        required={formData.role === 'employee'}
-                                        disabled={user?.role === 'hq'}
-                                    >
-                                        <option value="">Select HQ</option>
-                                        {hqs.map((hq) => (
-                                            <option key={hq._id} value={hq._id}>
-                                                {hq.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Designation</label>
-                                <Input
-                                    name="designation"
-                                    value={formData.designation}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">State</label>
-                                <Input
-                                    name="state"
-                                    value={formData.state}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Division/Dept</label>
-                                <Input
-                                    name="division"
-                                    value={formData.division}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Staff Type</label>
-                                <Input
-                                    name="staffType"
-                                    value={formData.staffType}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Monthly Pay</label>
-                                <Input
-                                    name="monthlyPay"
-                                    type="number"
-                                    value={formData.monthlyPay}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Distance Travelled</label>
-                                <Input
-                                    name="distanceTravelled"
-                                    type="number"
-                                    value={formData.distanceTravelled}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-
-                            <div className="col-span-2 flex justify-end gap-2 mt-4">
-                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit">
-                                    {isEditing ? 'Update' : 'Create'}
-                                </Button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={isEditing ? 'Edit Employee' : 'Add Employee'}
+                maxWidth="max-w-2xl"
+            >
+                <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Emp ID / Username</label>
+                        <Input
+                            name="username"
+                            value={formData.username}
+                            onChange={handleInputChange}
+                            required
+                            className="bg-background"
+                        />
                     </div>
-                </div>
-            )
-            }
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Name</label>
+                        <Input
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            className="bg-background"
+                        />
+                    </div>
+
+                    {!isEditing && (
+                        <div>
+                            <label className="text-sm font-medium mb-1 block">Password</label>
+                            <Input
+                                name="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleInputChange}
+                                required={!isEditing}
+                                minLength={6}
+                                className="bg-background"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Role</label>
+                        <select
+                            name="role"
+                            value={formData.role}
+                            onChange={handleInputChange}
+                            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="employee">Employee</option>
+                            <option value="hq">HQ Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    {formData.role === 'employee' && (
+                        <div>
+                            <label className="text-sm font-medium mb-1 block">Reporting HQ</label>
+                            <select
+                                name="hq"
+                                value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
+                                onChange={handleInputChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                required={formData.role === 'employee'}
+                                disabled={user?.role === 'hq'}
+                            >
+                                <option value="">Select HQ</option>
+                                {hqs.map((hq) => (
+                                    <option key={hq._id} value={hq._id}>
+                                        {hq.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Designation</label>
+                        <Input
+                            name="designation"
+                            value={formData.designation}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">State</label>
+                        <Input
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Division/Dept</label>
+                        <Input
+                            name="division"
+                            value={formData.division}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Staff Type</label>
+                        <Input
+                            name="staffType"
+                            value={formData.staffType}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Monthly Pay</label>
+                        <Input
+                            name="monthlyPay"
+                            type="number"
+                            value={formData.monthlyPay}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Distance Travelled</label>
+                        <Input
+                            name="distanceTravelled"
+                            type="number"
+                            value={formData.distanceTravelled}
+                            onChange={handleInputChange}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div className="col-span-2 flex justify-end gap-2 mt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            {isEditing ? 'Update' : 'Create'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div >
     );
 };

@@ -274,6 +274,7 @@ const LeaveCalendar: React.FC = () => {
                                             value={newHoliday.date}
                                             onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
                                             required
+                                            min={new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div>

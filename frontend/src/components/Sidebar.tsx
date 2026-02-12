@@ -53,10 +53,8 @@ const Sidebar: React.FC<SidebarProps> = ({ items = defaultAdminItems }) => {
         <aside className="w-64 bg-slate-900 border-r border-slate-800 h-screen fixed left-0 top-0 flex flex-col z-20 text-slate-300">
             <div className="h-16 flex items-center px-6 border-b border-slate-800">
                 <div className="flex items-center gap-2 font-bold text-xl text-white">
-                    <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-                        F
-                    </div>
-                    Field ERP
+                    <img src="/AppLogo.png" alt="SwaSarwam" className="h-8 w-8 object-contain rounded-lg" />
+                    SwaSarwam
                 </div>
             </div>
 

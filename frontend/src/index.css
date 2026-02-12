@@ -111,7 +111,69 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  @apply bg-background text-foreground;
+}
+
+input,
+textarea,
+select,
+label {
+  @apply bg-background text-foreground;
+}
+
+
+/* Date Input Dark Mode Support */
+.dark ::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* FullCalendar Overrides */
+@layer components {
+  .fc {
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: hsl(var(--muted));
+    --fc-neutral-text-color: hsl(var(--muted-foreground));
+    --fc-border-color: hsl(var(--border) / 0.5);
+    --fc-button-text-color: hsl(var(--primary-foreground));
+    --fc-button-bg-color: hsl(var(--primary));
+    --fc-button-border-color: hsl(var(--primary));
+    --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+    --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+    --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+    --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+    --fc-today-bg-color: hsl(var(--accent) / 0.3);
+    --fc-event-bg-color: hsl(var(--primary));
+    --fc-event-border-color: hsl(var(--primary));
+    --fc-event-text-color: hsl(var(--primary-foreground));
+  }
+
+  .fc .fc-col-header-cell-cushion,
+  .fc .fc-daygrid-day-number,
+  .fc .fc-list-day-cushion,
+  .fc .fc-list-event-title,
+  .fc .fc-list-event-time {
+    color: hsl(var(--foreground));
+    text-decoration: none !important;
+  }
+
+  .fc .fc-toolbar-title {
+    color: hsl(var(--foreground));
+  }
+
+  .fc-theme-standard .fc-scrollgrid,
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border-color: hsl(var(--border) / 0.5);
+  }
+
+  .dark .fc .fc-daygrid-day-frame:hover {
+    background-color: hsl(var(--muted) / 0.2);
+  }
+
+  .dark .fc .fc-button-primary:disabled {
+    background-color: hsl(var(--muted));
+    border-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
   }
 }

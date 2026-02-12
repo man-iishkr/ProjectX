@@ -3,9 +3,10 @@ import Table from '../../components/Table';
 import { getHQs, createHQ, deleteHQ } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
+import Modal from '../../components/ui/Modal';
 
 const HQList: React.FC = () => {
     const [hqs, setHQs] = useState<any[]>([]);
@@ -134,128 +135,120 @@ const HQList: React.FC = () => {
                 )}
             />
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-background p-6 rounded-lg w-full max-w-md shadow-lg relative">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <h3 className="text-xl font-bold mb-4">Add HQ</h3>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Name</label>
-                                <Input
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="e.g. Delhi HQ"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Location</label>
-                                <div className="relative">
-                                    <MapmyIndiaSearch
-                                        value={formData.location}
-                                        onSelect={(address: string, lat?: number, lng?: number) => {
-                                            setFormData((prev: any) => ({
-                                                ...prev,
-                                                location: address,
-                                                coordinates: (lat && lng) ? {
-                                                    type: 'Point',
-                                                    coordinates: [lng, lat]
-                                                } : null
-                                            }));
-                                        }}
-                                        placeholder="Search HQ Address..."
-                                        className="w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">State</label>
-                                <Input
-                                    name="state"
-                                    value={formData.state}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Password (for HQ Login)</label>
-                                <Input
-                                    name="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Set login password"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Employee Strength</label>
-                                <Input
-                                    name="employeeStrength"
-                                    type="number"
-                                    value={formData.employeeStrength}
-                                    onChange={handleInputChange}
-                                    placeholder="Optional"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Manager Strength</label>
-                                <Input
-                                    name="managerStrength"
-                                    type="number"
-                                    value={formData.managerStrength}
-                                    onChange={handleInputChange}
-                                    placeholder="Optional"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Transit Days</label>
-                                <Input
-                                    name="transitDays"
-                                    type="number"
-                                    value={formData.transitDays}
-                                    onChange={handleInputChange}
-                                    placeholder="Optional"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Transport Remarks</label>
-                                <Input
-                                    name="transportRemarks"
-                                    value={formData.transportRemarks}
-                                    onChange={handleInputChange}
-                                    placeholder="Optional - e.g., Via flight, Train, etc."
-                                />
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit">
-                                    Create
-                                </Button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Add HQ"
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Name</label>
+                        <Input
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="e.g. Delhi HQ"
+                        />
                     </div>
-                </div>
-            )}
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Location</label>
+                        <div className="relative">
+                            <MapmyIndiaSearch
+                                value={formData.location}
+                                onSelect={(address: string, lat?: number, lng?: number) => {
+                                    setFormData((prev: any) => ({
+                                        ...prev,
+                                        location: address,
+                                        coordinates: (lat && lng) ? {
+                                            type: 'Point',
+                                            coordinates: [lng, lat]
+                                        } : null
+                                    }));
+                                }}
+                                placeholder="Search HQ Address..."
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">State</label>
+                        <Input
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Password (for HQ Login)</label>
+                        <Input
+                            name="password"
+                            type="password"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="Set login password"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Employee Strength</label>
+                        <Input
+                            name="employeeStrength"
+                            type="number"
+                            value={formData.employeeStrength}
+                            onChange={handleInputChange}
+                            placeholder="Optional"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Manager Strength</label>
+                        <Input
+                            name="managerStrength"
+                            type="number"
+                            value={formData.managerStrength}
+                            onChange={handleInputChange}
+                            placeholder="Optional"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Transit Days</label>
+                        <Input
+                            name="transitDays"
+                            type="number"
+                            value={formData.transitDays}
+                            onChange={handleInputChange}
+                            placeholder="Optional"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Transport Remarks</label>
+                        <Input
+                            name="transportRemarks"
+                            value={formData.transportRemarks}
+                            onChange={handleInputChange}
+                            placeholder="Optional - e.g., Via flight, Train, etc."
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-6">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            Create
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

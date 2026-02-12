@@ -4,8 +4,9 @@ import { getRoutes, createRoute, updateRoute, deleteRoute } from '../../api/rout
 import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { X, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/ui/Modal';
 
 const RoutingList: React.FC = () => {
     const { user } = useAuth();
@@ -151,94 +152,86 @@ const RoutingList: React.FC = () => {
                 )}
             />
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-background p-6 rounded-lg w-full max-w-md shadow-lg relative">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <h3 className="text-xl font-bold mb-4">{isEditing ? 'Edit Route' : 'Add Route'}</h3>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Route Name</label>
-                                <Input
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="e.g. South Delhi Route 1"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Route Code</label>
-                                <Input
-                                    name="code"
-                                    value={formData.code}
-                                    onChange={handleInputChange}
-                                    placeholder="Optional e.g. R001"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Headquarters (HQ)</label>
-                                <select
-                                    name="hq"
-                                    value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
-                                    onChange={handleInputChange}
-                                    required
-                                    disabled={user?.role === 'hq'}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <option value="">Select HQ</option>
-                                    {hqs.map((hq) => (
-                                        <option key={hq._id} value={hq._id}>
-                                            {hq.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Areas Covered</label>
-                                <Input
-                                    name="areas"
-                                    value={formData.areas}
-                                    onChange={handleInputChange}
-                                    placeholder="Comma separated e.g. Saket, Malviya Nagar"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">Separate multiple areas with commas</p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    name="isActive"
-                                    id="isActive"
-                                    checked={formData.isActive}
-                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                                    className="h-4 w-4"
-                                />
-                                <label htmlFor="isActive" className="text-sm font-medium">Active Status</label>
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit">
-                                    {isEditing ? 'Update' : 'Create'}
-                                </Button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={isEditing ? 'Edit Route' : 'Add Route'}
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Route Name</label>
+                        <Input
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="e.g. South Delhi Route 1"
+                        />
                     </div>
-                </div>
-            )}
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Route Code</label>
+                        <Input
+                            name="code"
+                            value={formData.code}
+                            onChange={handleInputChange}
+                            placeholder="Optional e.g. R001"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Headquarters (HQ)</label>
+                        <select
+                            name="hq"
+                            value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
+                            onChange={handleInputChange}
+                            required
+                            disabled={user?.role === 'hq'}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">Select HQ</option>
+                            {hqs.map((hq) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Areas Covered</label>
+                        <Input
+                            name="areas"
+                            value={formData.areas}
+                            onChange={handleInputChange}
+                            placeholder="Comma separated e.g. Saket, Malviya Nagar"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Separate multiple areas with commas</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            name="isActive"
+                            id="isActive"
+                            checked={formData.isActive}
+                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                            className="h-4 w-4"
+                        />
+                        <label htmlFor="isActive" className="text-sm font-medium">Active Status</label>
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-6">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            {isEditing ? 'Update' : 'Create'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

@@ -8,7 +8,7 @@ let tokenExpiry = null;
 const getAccessToken = async () => {
     // Check cache
     if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
-        console.log('Using cached MapmyIndia token (expires in', Math.floor((tokenExpiry - Date.now()) / 1000), 'seconds)');
+
         return cachedToken;
     }
 
@@ -19,7 +19,6 @@ const getAccessToken = async () => {
         throw new Error('MapmyIndia Credentials (CLIENT_ID/SECRET) not configured');
     }
 
-    console.log('Generating new MapmyIndia OAuth token...');
     const tokenUrl = 'https://outpost.mapmyindia.com/api/security/oauth/token';
 
     try {
@@ -38,9 +37,6 @@ const getAccessToken = async () => {
         cachedToken = access_token;
         // Expire 5 mins early just to be safe
         tokenExpiry = Date.now() + (expires_in * 1000) - (5 * 60 * 1000);
-
-        console.log('✓ MapmyIndia token generated successfully (expires in', expires_in, 'seconds)');
-        console.log('Token preview:', access_token.substring(0, 20) + '...');
 
         return cachedToken;
     } catch (error) {
@@ -88,7 +84,6 @@ exports.searchPlaces = async (req, res, next) => {
             try {
                 const decoded = await digipin.decode(cleanQuery); // Attempt decode
                 if (decoded && decoded.latitude && decoded.longitude) {
-                    console.log('DigiPin Decoded:', cleanQuery, decoded);
                     return res.status(200).json({
                         success: true,
                         data: [{
@@ -149,7 +144,6 @@ exports.getPlaceDetails = async (req, res, next) => {
                 if (cleanEloc.length === 10) {
                     const decoded = await digipin.decode(cleanEloc);
                     if (decoded && decoded.latitude) {
-                        console.log('DigiPin Details Resolved:', decoded);
                         return res.status(200).json({
                             success: true,
                             data: {
@@ -174,11 +168,10 @@ exports.getPlaceDetails = async (req, res, next) => {
                 // Note: The previous attempt with path param /places/${eloc} failed with 404.
                 // Let's try the direct eloc query param if available or default to search with pod
 
-                // Strategy: Use the 'place_detail' endpoint if we can find it, 
+                // Strategy: Use the 'place_detail' endpoint if we can find it,
                 // BUT 'search' with 'pod' might work? No.
                 // Let's try: https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}
                 const url = `https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}`;
-                console.log('Mappls eLoc Request:', url);
                 const response = await axios.get(url, { headers: { 'Authorization': `Bearer ${token}` } });
                 data = response.data;
 
@@ -190,11 +183,9 @@ exports.getPlaceDetails = async (req, res, next) => {
                 }
                 // Fallback to Geocoding if address is provided
                 if (address) {
-                    console.log('Falling back to Geocoding for address:', address);
                     try {
                         const geoUrl = `https://atlas.mapmyindia.com/api/places/geocode?address=${encodeURIComponent(address)}`;
                         const geoRes = await axios.get(geoUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-                        console.log('Geocode Fallback Response:', JSON.stringify(geoRes.data));
 
                         if (geoRes.data.copResults) {
                             data = geoRes.data.copResults;
@@ -202,7 +193,6 @@ exports.getPlaceDetails = async (req, res, next) => {
                             // CRITICAL: copResults has eLoc but NO coordinates
                             // We need to use the eLoc to fetch coordinates from Place Detail API
                             if (data.eLoc) {
-                                console.log('Geocode returned eLoc:', data.eLoc, '- Fetching coordinates from Place Detail API...');
                                 try {
                                     // Use the textsearch endpoint which returns coordinates
                                     const detailUrl = `https://atlas.mapmyindia.com/api/places/textsearch/json?query=${data.eLoc}&pod=eLoc`;
@@ -210,13 +200,11 @@ exports.getPlaceDetails = async (req, res, next) => {
 
                                     if (detailRes.data && detailRes.data.suggestedLocations && detailRes.data.suggestedLocations.length > 0) {
                                         const location = detailRes.data.suggestedLocations[0];
-                                        console.log('Place Detail Response:', JSON.stringify(location));
 
                                         // Extract coordinates from the detail response
                                         if (location.latitude || location.eLat) {
                                             data.latitude = location.latitude || location.eLat;
                                             data.longitude = location.longitude || location.eLng;
-                                            console.log('Extracted coordinates from Place Detail:', data.latitude, data.longitude);
                                         }
                                     }
                                 } catch (detailErr) {
@@ -238,11 +226,8 @@ exports.getPlaceDetails = async (req, res, next) => {
         let hasCoords = data && (data.latitude || data.lat || (data.geometry && data.geometry.location));
 
         if ((!data || !hasCoords) && address) {
-            console.log('Mappls failed to return coords. Starting Nominatim (OSM) Fallback Strategy...');
-
             const searchNominatim = async (queryAddress) => {
                 try {
-                    console.log('Nominatim Querying:', queryAddress);
                     const osmRes = await axios.get(`https://nominatim.openstreetmap.org/search`, {
                         params: {
                             q: queryAddress,
@@ -266,7 +251,6 @@ exports.getPlaceDetails = async (req, res, next) => {
             if (!osmData && data && (data.locality || data.city)) {
                 const fallbackQuery = [data.locality, data.city, data.state].filter(Boolean).join(', ');
                 if (fallbackQuery && fallbackQuery !== address) {
-                    console.log('Nominatim Strategy 2 (Locality):', fallbackQuery);
                     osmData = await searchNominatim(fallbackQuery);
                 }
             }
@@ -275,7 +259,6 @@ exports.getPlaceDetails = async (req, res, next) => {
             if (!osmData && data && data.city) {
                 const cityQuery = [data.city, data.state].filter(Boolean).join(', ');
                 if (cityQuery) {
-                    console.log('Nominatim Strategy 3 (City Only):', cityQuery);
                     osmData = await searchNominatim(cityQuery);
                 }
             }
@@ -286,14 +269,13 @@ exports.getPlaceDetails = async (req, res, next) => {
                 if (parts.length > 2) {
                     const simpleQuery = parts.slice(-3).join(', ');
                     if (simpleQuery) {
-                        console.log('Nominatim Strategy 4 (Tail Address):', simpleQuery);
                         osmData = await searchNominatim(simpleQuery);
                     }
                 }
             }
 
             if (osmData) {
-                console.log('Nominatim Success:', osmData.lat, osmData.lon);
+                // console.log('Nominatim Success:', osmData.lat, osmData.lon);
                 data = {
                     ...data,
                     latitude: parseFloat(osmData.lat),
@@ -305,7 +287,7 @@ exports.getPlaceDetails = async (req, res, next) => {
                     confidence: 'High'
                 };
             } else {
-                console.log('Nominatim All Strategies Failed.');
+                // console.log('Nominatim All Strategies Failed.');
             }
         }
 
@@ -343,7 +325,6 @@ exports.getPlaceDetails = async (req, res, next) => {
                             const generatedPin = await digipin.encode(latNum, lngNum);
                             if (generatedPin) {
                                 data.digipin = generatedPin;
-                                console.log('Generated DigiPin:', generatedPin);
                             }
                         }
                     } catch (genError) {
@@ -352,13 +333,6 @@ exports.getPlaceDetails = async (req, res, next) => {
                 }
 
                 // Debug Log the final normalized data important fields
-                console.log('Normalized Mappls Data:', JSON.stringify({
-                    eLoc: data.eLoc,
-                    latitude: data.latitude,
-                    longitude: data.longitude,
-                    digipin: data.digipin,
-                    placeName: data.placeName || data.poi
-                }));
 
                 res.status(200).json({ success: true, data: data });
             } catch (normError) {
@@ -367,7 +341,6 @@ exports.getPlaceDetails = async (req, res, next) => {
                 res.status(200).json({ success: true, data: data });
             }
         } else {
-            console.log('No data found for request:', req.query);
             res.status(404).json({ success: false, error: 'Location details not found' });
         }
 

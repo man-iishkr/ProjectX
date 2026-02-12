@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getExpenses, updateExpenseStatus } from '../../api/expense.api';
+import Modal from '../../components/ui/Modal';
 
 const ExpenseList: React.FC = () => {
     const [expenses, setExpenses] = useState<any[]>([]);
@@ -72,9 +73,9 @@ const ExpenseList: React.FC = () => {
                     { header: 'Amount', accessor: 'amount' },
                     {
                         header: 'Status', accessor: (row) => (
-                            <span className={`px-2 py-1 rounded text-xs ${row.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                                    row.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
+                            <span className={`px-2 py-1 rounded text-xs ${row.status === 'Approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                row.status === 'Rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                 }`}>
                                 {row.status}
                             </span>
@@ -111,54 +112,55 @@ const ExpenseList: React.FC = () => {
             />
 
             {/* Approval Modal */}
-            {showModal && selectedExpense && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-xl font-bold mb-4">Approve Expense</h3>
+            <Modal
+                isOpen={showModal && !!selectedExpense}
+                onClose={() => setShowModal(false)}
+                title="Approve Expense"
+                maxWidth="max-w-2xl"
+            >
+                <div className="max-h-[80vh] overflow-y-auto">
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">Proof Image</label>
+                        {selectedExpense?.imageUrl ? (
+                            <div className="border rounded p-2 bg-muted/50 flex justify-center">
+                                <img
+                                    src={`http://localhost:5000/${selectedExpense.imageUrl}`}
+                                    alt="Receipt"
+                                    className="max-h-96 object-contain"
+                                />
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground italic">No image uploaded</p>
+                        )}
+                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Proof Image</label>
-                            {selectedExpense.imageUrl ? (
-                                <div className="border rounded p-2 bg-gray-50 flex justify-center">
-                                    <img
-                                        src={`http://localhost:5000/${selectedExpense.imageUrl}`}
-                                        alt="Receipt"
-                                        className="max-h-96 object-contain"
-                                    />
-                                </div>
-                            ) : (
-                                <p className="text-gray-500 italic">No image uploaded</p>
-                            )}
-                        </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium mb-1">Approved Amount</label>
+                        <input
+                            type="number"
+                            value={approvalAmount}
+                            onChange={(e) => setApprovalAmount(Number(e.target.value))}
+                            className="w-full border p-2 rounded bg-background focus:ring-2 focus:ring-primary"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Original Claim: {selectedExpense?.amount}</p>
+                    </div>
 
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Approved Amount</label>
-                            <input
-                                type="number"
-                                value={approvalAmount}
-                                onChange={(e) => setApprovalAmount(Number(e.target.value))}
-                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Original Claim: {selectedExpense.amount}</p>
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="px-4 py-2 border rounded hover:bg-gray-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleConfirmApprove}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                            >
-                                Confirm Approval
-                            </button>
-                        </div>
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={() => setShowModal(false)}
+                            className="px-4 py-2 border rounded hover:bg-gray-100"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleConfirmApprove}
+                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                            Confirm Approval
+                        </button>
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };
