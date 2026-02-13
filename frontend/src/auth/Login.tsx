@@ -67,7 +67,7 @@ const Login: React.FC = () => {
             </div>
 
             {/* Right Side - Login Form */}
-            <div className="flex-1 flex items-center justify-center p-8">
+            <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-8">
                 <Card className="w-full max-w-md shadow-xl border-0">
                     <CardHeader className="space-y-4">
                         <div className="lg:hidden flex items-center justify-center gap-2 mb-4">

@@ -3,6 +3,7 @@ import { getExpenses, createExpense } from '../../api/expense.api'; // Ensure cr
 import { useAuth } from '../../context/AuthContext';
 import Table from '../../components/Table';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Plus, Upload } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 
@@ -132,7 +133,7 @@ const MyExpenses: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium mb-1">Expense Type</label>
                         <select
-                            className="w-full border rounded p-2 bg-background text-foreground"
+                            className="w-full border border-input rounded p-2 bg-background text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                             value={formData.expenseType}
                             onChange={(e) => setFormData({ ...formData, expenseType: e.target.value })}
                         >
@@ -145,9 +146,8 @@ const MyExpenses: React.FC = () => {
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Amount (₹)</label>
-                        <input
+                        <Input
                             type="number"
-                            className="w-full border rounded p-2 bg-background text-foreground"
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                             required
@@ -157,9 +157,8 @@ const MyExpenses: React.FC = () => {
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Date</label>
-                        <input
+                        <Input
                             type="date"
-                            className="w-full border rounded p-2 bg-background text-foreground"
                             value={formData.date}
                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                             required
@@ -168,7 +167,7 @@ const MyExpenses: React.FC = () => {
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Receipt Image</label>
-                        <div className="border border-dashed rounded-lg p-4 text-center hover:bg-muted/50 transition-colors relative">
+                        <div className="border border-dashed border-input rounded-lg p-4 text-center hover:bg-muted/50 transition-colors relative">
                             <input
                                 type="file"
                                 accept="image/*"
@@ -176,8 +175,8 @@ const MyExpenses: React.FC = () => {
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
                             <div className="flex flex-col items-center pointer-events-none">
-                                <Upload className="h-6 w-6 text-slate-400 mb-2" />
-                                <span className="text-sm text-slate-600">
+                                <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                                <span className="text-sm text-muted-foreground">
                                     {formData.image ? formData.image.name : 'Click to upload receipt'}
                                 </span>
                             </div>
@@ -187,7 +186,7 @@ const MyExpenses: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium mb-1">Comments</label>
                         <textarea
-                            className="w-full border rounded p-2 h-20 bg-background text-foreground"
+                            className="w-full border border-input rounded p-2 h-20 bg-background text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                             value={formData.comments}
                             onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
                             placeholder="Optional details..."

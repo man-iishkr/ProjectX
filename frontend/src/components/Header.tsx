@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { useAuth } from '../context/AuthContext';
-import { Bell, User, AlertCircle, CheckCircle, LogOut, Moon, Sun } from 'lucide-react';
+import { Bell, User, AlertCircle, CheckCircle, LogOut, Moon, Sun, Menu } from 'lucide-react';
 import { notificationAPI, type Notification } from '../api/notification.api';
 import { useNavigate } from 'react-router-dom';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+    onMenuClick?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -74,8 +78,11 @@ const Header: React.FC = () => {
     const totalCount = notifications.reduce((acc, curr) => acc + curr.count, 0);
 
     return (
-        <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 sticky top-0 z-10 w-full">
+        <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 sticky top-0 z-30 w-full">
             <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
+                    <Menu className="h-5 w-5" />
+                </Button>
                 <h2 className="text-lg font-semibold">Dashboard</h2>
             </div>
 

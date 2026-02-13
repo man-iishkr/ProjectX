@@ -30,7 +30,7 @@ const EmployeeLogin: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center sm:py-12">
-            <div className="p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
+            <div className="p-4 sm:p-0 mx-auto md:w-full md:max-w-md">
 
                 {/* Brand Header */}
                 <div className="mb-8 text-center">

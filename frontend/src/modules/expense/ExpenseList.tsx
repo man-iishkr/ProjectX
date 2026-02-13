@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
 import { getExpenses, updateExpenseStatus } from '../../api/expense.api';
 import Modal from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const ExpenseList: React.FC = () => {
     const [expenses, setExpenses] = useState<any[]>([]);
@@ -93,18 +95,20 @@ const ExpenseList: React.FC = () => {
                     <div className="flex gap-2">
                         {row.status === 'Pending' && (
                             <>
-                                <button
+                                <Button
                                     onClick={() => handleApproveClick(row)}
-                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
                                 >
                                     Approve
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => handleReject(row._id)}
-                                    className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                                    variant="destructive"
+                                    size="sm"
                                 >
                                     Reject
-                                </button>
+                                </Button>
                             </>
                         )}
                     </div>
@@ -136,28 +140,28 @@ const ExpenseList: React.FC = () => {
 
                     <div className="mb-6">
                         <label className="block text-sm font-medium mb-1">Approved Amount</label>
-                        <input
+                        <Input
                             type="number"
                             value={approvalAmount}
                             onChange={(e) => setApprovalAmount(Number(e.target.value))}
-                            className="w-full border p-2 rounded bg-background focus:ring-2 focus:ring-primary"
+                            className="w-full"
                         />
                         <p className="text-xs text-muted-foreground mt-1">Original Claim: {selectedExpense?.amount}</p>
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={() => setShowModal(false)}
-                            className="px-4 py-2 border rounded hover:bg-gray-100"
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleConfirmApprove}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                         >
                             Confirm Approval
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
