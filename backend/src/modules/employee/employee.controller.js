@@ -31,20 +31,37 @@ exports.getEmployees = async (req, res, next) => {
     try {
         let query;
 
-        // If Admin, get all (or filter by query)
+        const status = req.query.status || 'active'; // active, past, all
+
+        let filter = { role: 'employee' };
+
+        // Status Filter Logic
+        const now = new Date();
+        if (status === 'active') {
+            filter.$or = [
+                { resignationDate: { $exists: false } }, // Field doesn't exist
+                { resignationDate: null },               // Field is null
+                { resignationDate: { $gt: now } }        // Date is in future
+            ];
+        } else if (status === 'past') {
+            filter.resignationDate = { $lte: now };      // Date is past or today
+        }
+        // 'all' passes no extra filter
+
+        // If Admin, get all matching filter
         if (req.user.role === 'admin') {
-            let filter = { role: 'employee' };
             if (req.query.hq) {
                 filter.hq = req.query.hq;
             }
-            query = User.find(filter);
         }
-        // If HQ, get only their employees
+        // If HQ, get only their employees matching filter
         else if (req.user.role === 'hq') {
-            query = User.find({ role: 'employee', hq: req.user.hq });
+            filter.hq = req.user.hq;
         } else {
             return res.status(403).json({ success: false, error: 'Not authorized' });
         }
+
+        query = User.find(filter);
 
         // Populate HQ details
         query = query.populate('hq', 'name location');

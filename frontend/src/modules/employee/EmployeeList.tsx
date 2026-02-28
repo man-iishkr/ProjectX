@@ -4,15 +4,17 @@ import { getEmployees, deleteEmployee, createEmployee, updateEmployee } from '..
 import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/ui/Modal';
+import axios from 'axios';
 
 const EmployeeList: React.FC = () => {
     const { user } = useAuth();
     const [employees, setEmployees] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
     const [selectedHQ, setSelectedHQ] = useState('');
+    const [employeeStatus, setEmployeeStatus] = useState<'active' | 'past'>('active');
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -29,21 +31,26 @@ const EmployeeList: React.FC = () => {
         division: '',
         staffType: '',
         monthlyPay: '',
-        distanceTravelled: 0
+        distanceTravelled: 0,
+        joiningDate: '',
+        resignationDate: '',
+        aadharCard: '',
+        panCard: '',
+        mobile: '',
+        address: '',
+        pincode: '',
+        city: ''
     });
 
     useEffect(() => {
         loadData();
-    }, [selectedHQ]);
+    }, [selectedHQ, employeeStatus]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            // Fetch employees filtered by generic HQ selector
-            const empPromise = getEmployees(selectedHQ);
+            const empPromise = getEmployees(selectedHQ, employeeStatus);
 
-            // Only fetch HQs if not already loaded and user is admin/HQ (likely admin needs list for filter)
-            // But EmployeeList already fetched HQs for dropdown in form, so we can reuse or check length
             const promises: Promise<any>[] = [empPromise];
             if (hqs.length === 0) {
                 promises.push(getHQs());
@@ -54,7 +61,6 @@ const EmployeeList: React.FC = () => {
             if (empRes.success) {
                 setEmployees(empRes.data);
             }
-            // If hqRes exists (meaning we fetched it above), set it
             if (hqRes && hqRes.success) {
                 setHQs(hqRes.data);
             }
@@ -66,7 +72,28 @@ const EmployeeList: React.FC = () => {
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'pincode' && value.length === 6) {
+            fetchPincodeDetails(value);
+        }
+    };
+
+    const fetchPincodeDetails = async (pincode: string) => {
+        try {
+            const res = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
+            if (res.data && res.data[0].Status === 'Success') {
+                const details = res.data[0].PostOffice[0];
+                setFormData(prev => ({
+                    ...prev,
+                    city: details.District,
+                    state: details.State
+                }));
+            }
+        } catch (err) {
+            console.error("Failed to fetch pincode details", err);
+        }
     };
 
     const openCreateModal = () => {
@@ -75,13 +102,21 @@ const EmployeeList: React.FC = () => {
             username: '',
             password: '',
             role: 'employee',
-            hq: user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '', // Auto-set HQ
+            hq: user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '',
             designation: '',
             state: '',
             division: '',
             staffType: '',
             monthlyPay: '',
-            distanceTravelled: 0
+            distanceTravelled: 0,
+            joiningDate: '',
+            resignationDate: '',
+            aadharCard: '',
+            panCard: '',
+            mobile: '',
+            address: '',
+            pincode: '',
+            city: ''
         });
         setIsEditing(false);
         setIsModalOpen(true);
@@ -91,7 +126,7 @@ const EmployeeList: React.FC = () => {
         setFormData({
             name: employee.name,
             username: employee.username,
-            password: '', // Leave empty to not change
+            password: '',
             role: employee.role,
             hq: employee.hq?._id || '',
             designation: employee.designation || '',
@@ -99,7 +134,15 @@ const EmployeeList: React.FC = () => {
             division: employee.division || '',
             staffType: employee.staffType || '',
             monthlyPay: employee.monthlyPay || '',
-            distanceTravelled: employee.distanceTravelled || 0
+            distanceTravelled: employee.distanceTravelled || 0,
+            joiningDate: employee.joiningDate ? employee.joiningDate.split('T')[0] : '',
+            resignationDate: employee.resignationDate ? employee.resignationDate.split('T')[0] : '',
+            aadharCard: employee.aadharCard || '',
+            panCard: employee.panCard || '',
+            mobile: employee.mobile || '',
+            address: employee.address || '',
+            pincode: employee.pincode || '',
+            city: employee.city || ''
         });
         setCurrentId(employee._id);
         setIsEditing(true);
@@ -108,10 +151,25 @@ const EmployeeList: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Strict Validation
+        if (formData.aadharCard.length !== 12) {
+            alert('Aadhar Card must be exactly 12 digits');
+            return;
+        }
+        if (formData.mobile.length !== 10) {
+            alert('Mobile Number must be exactly 10 digits');
+            return;
+        }
+        if (formData.panCard.length !== 10) {
+            alert('PAN Card must be exactly 10 characters');
+            return;
+        }
+
         try {
+            const dataToSend: any = { ...formData };
             if (isEditing && currentId) {
-                const dataToSend = { ...formData };
-                if (!dataToSend.password) delete (dataToSend as any).password;
+                if (!dataToSend.password) delete dataToSend.password;
 
                 await updateEmployee(currentId, dataToSend);
             } else {
@@ -128,17 +186,48 @@ const EmployeeList: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure?')) {
             await deleteEmployee(id);
-            loadData(); // Reload to refresh list
+            loadData();
         }
     };
+
+    const columns = [
+        { header: 'Emp ID', accessor: 'username' },
+        { header: 'Name', accessor: 'name' },
+        { header: 'Mobile', accessor: 'mobile' },
+        { header: 'HQ', accessor: (row: any) => row.hq?.name || 'N/A' },
+        { header: 'Designation', accessor: 'designation' },
+        { header: 'State', accessor: 'state' },
+        { header: 'Join Date', accessor: (row: any) => row.joiningDate ? new Date(row.joiningDate).toLocaleDateString() : '-' },
+        ...(employeeStatus === 'past' ? [{ header: 'Resignation', accessor: (row: any) => row.resignationDate ? new Date(row.resignationDate).toLocaleDateString() : '-' }] : []),
+        { header: 'Role', accessor: 'role' },
+    ];
 
     if (loading) return <div>Loading...</div>;
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">Employees</h2>
-                <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h2 className="text-2xl font-semibold">Employees</h2>
+                    <div className="flex gap-2 mt-2">
+                        <Button
+                            variant={employeeStatus === 'active' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setEmployeeStatus('active')}
+                        >
+                            Active Employees
+                        </Button>
+                        <Button
+                            variant={employeeStatus === 'past' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setEmployeeStatus('past')}
+                        >
+                            Past Employees
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="flex gap-4 items-center">
                     {user?.role === 'admin' && (
                         <select
                             className="border rounded px-2 py-1 bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
@@ -162,18 +251,7 @@ const EmployeeList: React.FC = () => {
 
             <Table
                 data={employees}
-                columns={[
-                    { header: 'Emp ID', accessor: 'username' },
-                    { header: 'Name', accessor: 'name' },
-                    { header: 'Reporting HQ', accessor: (row) => row.hq?.name || 'N/A' },
-                    { header: 'Division', accessor: 'division' },
-                    { header: 'Staff Type', accessor: 'staffType' },
-                    { header: 'Designation', accessor: 'designation' },
-                    { header: 'State', accessor: 'state' },
-                    { header: 'Monthly Pay', accessor: 'monthlyPay' },
-                    { header: 'Dist. Travelled', accessor: 'distanceTravelled' },
-                    { header: 'Role', accessor: 'role' },
-                ]}
+                columns={columns}
                 actions={(row) => (
                     <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
@@ -192,9 +270,12 @@ const EmployeeList: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title={isEditing ? 'Edit Employee' : 'Add Employee'}
-                maxWidth="max-w-2xl"
+                maxWidth="max-w-4xl"
             >
-                <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Basic Info */}
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2">Basic Info</div>
+
                     <div>
                         <label className="text-sm font-medium mb-1 block">Emp ID / Username</label>
                         <Input
@@ -217,6 +298,20 @@ const EmployeeList: React.FC = () => {
                         />
                     </div>
 
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Role</label>
+                        <select
+                            name="role"
+                            value={formData.role}
+                            onChange={handleInputChange}
+                            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+                        >
+                            <option value="employee">Employee</option>
+                            <option value="hq">HQ Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
                     {!isEditing && (
                         <div>
                             <label className="text-sm font-medium mb-1 block">Password</label>
@@ -229,21 +324,38 @@ const EmployeeList: React.FC = () => {
                                 minLength={6}
                                 className="bg-background"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
                         </div>
                     )}
 
+                    {/* Official Details */}
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4">Official Details</div>
+
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Role</label>
-                        <select
-                            name="role"
-                            value={formData.role}
+                        <label className="text-sm font-medium mb-1 block">Joining Date</label>
+                        <Input
+                            name="joiningDate"
+                            type="date"
+                            value={formData.joiningDate}
                             onChange={handleInputChange}
-                            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                            required
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Designation</label>
+                        <select
+                            name="designation"
+                            value={formData.designation}
+                            onChange={handleInputChange}
+                            required
+                            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
                         >
-                            <option value="employee">Employee</option>
-                            <option value="hq">HQ Manager</option>
-                            <option value="admin">Admin</option>
+                            <option value="">Select Designation</option>
+                            <option value="BDE">BDE</option>
+                            <option value="ASM">ASM</option>
+                            <option value="RSM">RSM</option>
+                            <option value="SM">SM</option>
                         </select>
                     </div>
 
@@ -254,7 +366,7 @@ const EmployeeList: React.FC = () => {
                                 name="hq"
                                 value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
                                 onChange={handleInputChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
                                 required={formData.role === 'employee'}
                                 disabled={user?.role === 'hq'}
                             >
@@ -269,12 +381,112 @@ const EmployeeList: React.FC = () => {
                     )}
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Designation</label>
+                        <label className="text-sm font-medium mb-1 block">Monthly Pay</label>
                         <Input
-                            name="designation"
-                            value={formData.designation}
+                            name="monthlyPay"
+                            type="number"
+                            value={formData.monthlyPay}
+                            onChange={handleInputChange}
+                            required
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Resignation Date</label>
+                        <Input
+                            name="resignationDate"
+                            type="date"
+                            value={formData.resignationDate}
                             onChange={handleInputChange}
                             className="bg-background"
+                        />
+                        <p className="text-xs text-muted-foreground">Set this to move employee to "Past"</p>
+                    </div>
+
+                    {/* Personal & Address */}
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4">Personal & Address</div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Mobile No.</label>
+                        <Input
+                            name="mobile"
+                            value={formData.mobile}
+                            onChange={handleInputChange}
+                            required
+                            maxLength={10}
+                            minLength={10}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Aadhar Card</label>
+                        <Input
+                            name="aadharCard"
+                            value={formData.aadharCard}
+                            onChange={handleInputChange}
+                            required
+                            maxLength={12}
+                            minLength={12}
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">PAN Card</label>
+                        <Input
+                            name="panCard"
+                            value={formData.panCard}
+                            onChange={handleInputChange}
+                            required
+                            maxLength={10}
+                            minLength={10}
+                            className="bg-background uppercase"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="text-sm font-medium mb-1 block">Address</label>
+                        <Input
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            required
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Pincode</label>
+                        <div className="relative">
+                            <Input
+                                name="pincode"
+                                value={formData.pincode}
+                                onChange={handleInputChange}
+                                required
+                                maxLength={6}
+                                minLength={6}
+                                className="bg-background"
+                                placeholder="Auto-fetches City/State"
+                            />
+                            {formData.pincode.length === 6 && (
+                                <div className="absolute right-3 top-2.5 text-green-500">
+                                    <Search className="h-4 w-4" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">City</label>
+                        <Input
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            required
+                            className="bg-background"
+                            readOnly
                         />
                     </div>
 
@@ -284,53 +496,13 @@ const EmployeeList: React.FC = () => {
                             name="state"
                             value={formData.state}
                             onChange={handleInputChange}
+                            required
                             className="bg-background"
+                            readOnly
                         />
                     </div>
 
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Division/Dept</label>
-                        <Input
-                            name="division"
-                            value={formData.division}
-                            onChange={handleInputChange}
-                            className="bg-background"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Staff Type</label>
-                        <Input
-                            name="staffType"
-                            value={formData.staffType}
-                            onChange={handleInputChange}
-                            className="bg-background"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Monthly Pay</label>
-                        <Input
-                            name="monthlyPay"
-                            type="number"
-                            value={formData.monthlyPay}
-                            onChange={handleInputChange}
-                            className="bg-background"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Distance Travelled</label>
-                        <Input
-                            name="distanceTravelled"
-                            type="number"
-                            value={formData.distanceTravelled}
-                            onChange={handleInputChange}
-                            className="bg-background"
-                        />
-                    </div>
-
-                    <div className="col-span-2 flex justify-end gap-2 mt-4">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-end gap-2 mt-6">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                             Cancel
                         </Button>
@@ -340,7 +512,7 @@ const EmployeeList: React.FC = () => {
                     </div>
                 </form>
             </Modal>
-        </div >
+        </div>
     );
 };
 

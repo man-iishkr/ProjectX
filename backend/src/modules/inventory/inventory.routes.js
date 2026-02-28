@@ -3,7 +3,8 @@ const {
     getProducts,
     createProduct,
     getInventory,
-    updateStock
+    updateStock,
+    updateProduct
 } = require('./inventory.controller');
 const { protect, authorize } = require('../../middleware/auth.middleware');
 
@@ -15,6 +16,9 @@ router.use(protect);
 router.route('/products')
     .get(getProducts)
     .post(authorize('admin'), createProduct);
+
+router.route('/products/:id')
+    .put(authorize('admin'), updateProduct);
 
 // Inventory/Stock Routes
 router.route('/stock')

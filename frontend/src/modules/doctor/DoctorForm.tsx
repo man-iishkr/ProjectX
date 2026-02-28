@@ -62,7 +62,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         },
         rejectedRemark: '',
         approvalStatus: 'Pending',
-        distance: 0
+        distance: 0,
+        dob: '',
+        dom: ''
     });
 
     const { data: hqs } = useHQs();
@@ -120,52 +122,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         }
     };
 
-    const [gettingLocation, setGettingLocation] = useState(false);
 
-    const matchLocationToAddress = async (lat: number, lng: number) => {
-        try {
-            const details = await getReverseGeoCode(lat, lng);
-            if (details) {
-                setFormData(prev => ({
-                    ...prev,
-                    city: details.city || details.village || details.district || prev.city,
-                    state: details.state || prev.state,
-                    pincode: details.pincode || prev.pincode,
-                }));
-            }
-        } catch (e) {
-            console.error('RevGeo Failed', e);
-        }
-    };
-
-    const captureLocation = () => {
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
-            return;
-        }
-
-        setGettingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                setFormData(prev => ({
-                    ...prev,
-                    location: {
-                        type: 'Point',
-                        coordinates: [longitude, latitude]
-                    }
-                }));
-                matchLocationToAddress(latitude, longitude);
-                setGettingLocation(false);
-            },
-            (error) => {
-                console.error(error);
-                alert('Unable to retrieve your location');
-                setGettingLocation(false);
-            },
-            { enableHighAccuracy: true } // Important for "at the clinic" precision
-        );
-    };
 
     const handleLocationSelect = async (address: string, lat?: number, lng?: number) => {
         // State updates
@@ -258,6 +215,17 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     <div>
                         <label className="block text-sm font-medium mb-1">Date</label>
                         <input type="date" name="date" value={formData.date?.split('T')[0]} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
+                    </div>
+                </div>
+
+                <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Date of Birth</label>
+                        <input type="date" name="dob" value={formData.dob ? formData.dob.split('T')[0] : ''} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Date of Marriage</label>
+                        <input type="date" name="dom" value={formData.dom ? formData.dom.split('T')[0] : ''} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
                     </div>
                 </div>
 
@@ -380,30 +348,10 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                         }
                     />
                     <div className="mt-2 flex items-center justify-between">
-                        {formData.location?.coordinates[0] !== 0 ? (
-                            <div className="flex gap-2 text-xs">
-                                <div className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded border border-green-200 dark:border-green-800 flex items-center">
-                                    <span className="font-semibold mr-1">Lat:</span> {formData.location.coordinates[1].toFixed(6)}
-                                </div>
-                                <div className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded border border-green-200 dark:border-green-800 flex items-center">
-                                    <span className="font-semibold mr-1">Lng:</span> {formData.location.coordinates[0].toFixed(6)}
-                                </div>
-                                <div className="text-green-600 dark:text-green-400 font-bold flex items-center">
-                                    (Captured)
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-xs text-amber-600">Location not captured</div>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={captureLocation}
-                            disabled={gettingLocation}
-                            className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 flex items-center gap-1 transition-colors"
-                        >
-                            {gettingLocation ? 'Locating...' : '📍 Capture Reporting Location'}
-                        </button>
+                        {/* Removed Location Capture Button per PRD */}
+                        <div className="text-xs text-amber-600">
+                            Location will be captured during first visit.
+                        </div>
                     </div>
                 </div>
 

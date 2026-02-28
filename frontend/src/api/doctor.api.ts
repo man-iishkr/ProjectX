@@ -20,3 +20,12 @@ export const deleteDoctor = async (id: string) => {
     const { data } = await api.delete(`/doctors/${id}`);
     return data;
 };
+
+export const captureDoctorLocation = async (id: string, formData: FormData) => {
+    const { data } = await api.post(`/doctors/${id}/location`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return data;
+};

@@ -104,16 +104,36 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                     { header: 'Phone', accessor: 'phone' },
                     { header: 'Add Date', accessor: (row) => new Date(row.date).toLocaleDateString() },
                     { header: 'Rejected Remark', accessor: 'rejectedRemark' },
-                    { header: 'Status', accessor: 'approvalStatus' },
+                    {
+                        header: 'Status',
+                        accessor: (row) => {
+                            if (row.approvalStatus === 'Approved' && !row.isLocationVerified) {
+                                return <span className="text-amber-600 font-semibold">Loc. Pending</span>;
+                            }
+                            if (row.approvalStatus === 'Approved' && row.isLocationVerified) {
+                                return <span className="text-green-600 font-semibold">Active</span>;
+                            }
+                            return row.approvalStatus;
+                        }
+                    },
                 ]}
                 actions={(row: any) => (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                         {row.approvalStatus === 'Pending' && (user?.role === 'admin' || user?.role === 'hq') && (
                             <button
                                 onClick={() => handleApprove(row._id)}
                                 className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
                             >
                                 Approve
+                            </button>
+                        )}
+                        {row.locationImageUrl && (user?.role === 'admin' || user?.role === 'hq') && (
+                            <button
+                                onClick={() => window.open(`http://localhost:5000${row.locationImageUrl}`, '_blank')}
+                                className="text-purple-600 hover:text-purple-900 border border-purple-600 px-2 py-0.5 rounded text-xs"
+                                title="View Clinic Image"
+                            >
+                                View Image
                             </button>
                         )}
                         <button

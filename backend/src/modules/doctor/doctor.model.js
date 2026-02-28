@@ -70,6 +70,12 @@ const DoctorSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    dob: {
+        type: Date
+    },
+    dom: {
+        type: Date
+    },
 
     // GeoJSON Point - making it optional if user doesn't have lat/lng immediately
     location: {
@@ -81,6 +87,20 @@ const DoctorSchema = new mongoose.Schema({
             type: [Number], // [longitude, latitude]
             index: '2dsphere'
         }
+    },
+    isLocationVerified: {
+        type: Boolean,
+        default: false
+    },
+    locationImageUrl: {
+        type: String
+    },
+    locationCapturedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    locationCapturedAt: {
+        type: Date
     },
 
     approvalStatus: {

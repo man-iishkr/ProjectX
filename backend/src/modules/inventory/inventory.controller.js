@@ -142,3 +142,28 @@ exports.updateStock = async (req, res, next) => {
         next(err);
     }
 };
+
+// @desc    Update product (price/details)
+// @route   PUT /api/v1/inventory/products/:id
+// @access  Private (Admin)
+exports.updateProduct = async (req, res, next) => {
+    try {
+        let product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ success: false, error: 'Product not found' });
+        }
+
+        product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+
+        // Invalidate cache
+        await del('products:*');
+
+        res.status(200).json({ success: true, data: product });
+    } catch (err) {
+        next(err);
+    }
+};

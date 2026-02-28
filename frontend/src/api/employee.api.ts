@@ -1,7 +1,9 @@
 import api from './axios';
 
-export const getEmployees = async (hqId?: string) => {
-    const params = hqId ? { hq: hqId } : {};
+export const getEmployees = async (hqId?: string, status: 'active' | 'past' | 'all' = 'active') => {
+    const params: any = { status };
+    if (hqId) params.hq = hqId;
+
     const { data } = await api.get('/employees', { params });
     return data;
 };

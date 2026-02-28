@@ -11,6 +11,11 @@ export const createProduct = async (productData: any) => {
     return data;
 };
 
+export const updateProduct = async (id: string, productData: any) => {
+    const { data } = await api.put(`/inventory/products/${id}`, productData);
+    return data;
+};
+
 // Inventory / Stock
 export const getInventory = async (stockistId?: string) => {
     const query = stockistId ? `?stockistId=${stockistId}` : '';

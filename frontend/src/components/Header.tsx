@@ -78,18 +78,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     const totalCount = notifications.reduce((acc, curr) => acc + curr.count, 0);
 
     return (
-        <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 sticky top-0 z-30 w-full">
+        <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 sticky top-0 z-30 w-full text-foreground">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
+                <Button variant="ghost" size="icon" className="md:hidden text-foreground" onClick={onMenuClick}>
                     <Menu className="h-5 w-5" />
                 </Button>
-                <h2 className="text-lg font-semibold">Dashboard</h2>
+                <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 text-foreground">
                 {/* Notification Bell */}
                 <div className="relative">
-                    <Button variant="ghost" size="icon" onClick={() => setShowDropdown(!showDropdown)}>
+                    <Button variant="ghost" size="icon" className="text-foreground" onClick={() => setShowDropdown(!showDropdown)}>
                         <Bell className="h-5 w-5" />
                         {totalCount > 0 && (
                             <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-background"></span>
@@ -101,7 +101,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                         <>
                             <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowDropdown(false)}></div>
                             <div className="absolute right-0 mt-2 w-80 bg-card border border-border shadow-lg rounded-md overflow-hidden z-50">
-                                <div className="p-3 border-b border-border font-medium text-sm flex justify-between items-center">
+                                <div className="p-3 border-b border-border font-medium text-sm flex justify-between items-center text-foreground">
                                     <span>Notifications</span>
                                     <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">{totalCount} New</span>
                                 </div>
@@ -115,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                                             <div
                                                 key={notif.id}
                                                 onClick={() => handleNotificationClick(notif.link)}
-                                                className="p-3 border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                                                className="p-3 border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors text-foreground"
                                             >
                                                 <div className="flex items-start gap-3">
                                                     {notif.type === 'alert' ?
@@ -147,13 +147,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 <div className="relative">
                     <Button
                         variant="ghost"
-                        className="flex items-center gap-2 px-2 hover:bg-accent hover:text-accent-foreground"
+                        className="flex items-center gap-2 px-2 hover:bg-accent hover:text-accent-foreground text-foreground"
                         onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                     >
                         <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-border">
                             <User className="h-5 w-5 text-foreground" />
                         </div>
-                        <div className="hidden md:block text-left">
+                        <div className="hidden md:block text-left text-foreground">
                             <p className="text-sm font-medium leading-none">{user?.name}</p>
                             <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
                         </div>

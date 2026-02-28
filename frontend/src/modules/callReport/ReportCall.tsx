@@ -5,6 +5,7 @@ import { MapPin, CheckCircle, XCircle, Loader2, Navigation } from 'lucide-react'
 import { getDoctors } from '../../api/doctor.api';
 import { createCallReport } from '../../api/call.api';
 import { getProducts } from '../../api/inventory.api';
+import { captureDoctorLocation } from '../../api/doctor.api';
 // import { useAuth } from '../../context/AuthContext'; // Not used in this version?
 
 // Haversine formula to calculate distance in meters
@@ -41,6 +42,7 @@ const ReportCall: React.FC = () => {
     const [distance, setDistance] = useState<number | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
     const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const [locationImage, setLocationImage] = useState<File | null>(null);
 
     // Form State
     const [remarks, setRemarks] = useState('');
@@ -90,6 +92,7 @@ const ReportCall: React.FC = () => {
         setDistance(null);
         setErrorMsg('');
         setUserLocation(null);
+        setLocationImage(null);
     };
 
     const handleVerifyLocation = () => {
@@ -127,6 +130,56 @@ const ReportCall: React.FC = () => {
                     } else {
                         setErrorMsg(`You are ${Math.round(dist)}m away. Please move closer to the clinic (Target: 20m).`);
                         setVerified(false);
+                    }
+                },
+                (error) => {
+                    console.error(error);
+                    setVerifying(false);
+                    setErrorMsg("Failed to get your location. Please enable GPS.");
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            setVerifying(false);
+            setErrorMsg("Geolocation is not supported by this browser.");
+        }
+    };
+
+    const handleFirstTimeCapture = async () => {
+        if (!selectedDoctor || !locationImage) {
+            setErrorMsg("Please select an image of the clinic/location.");
+            return;
+        }
+
+        setVerifying(true);
+        setErrorMsg('');
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    setUserLocation({ lat: userLat, lng: userLng });
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('latitude', userLat.toString());
+                        formData.append('longitude', userLng.toString());
+                        formData.append('image', locationImage);
+
+                        const res = await captureDoctorLocation(selectedDoctor._id, formData);
+
+                        if (res.success) {
+                            // Update local doctor state so it bypasses this on next render
+                            setSelectedDoctor(res.data);
+                            setVerified(true);
+                        } else {
+                            setErrorMsg(res.error || "Failed to upload location");
+                        }
+                    } catch (err: any) {
+                        setErrorMsg(err.response?.data?.error || "Error uploading location");
+                    } finally {
+                        setVerifying(false);
                     }
                 },
                 (error) => {
@@ -207,46 +260,109 @@ const ReportCall: React.FC = () => {
                     </select>
                 </div>
 
-                {/* 2. Verify Location */}
+                {/* 2. Verify Location or First-Time Capture */}
                 {selectedDoctor && (
                     <div className="bg-muted/50 p-4 rounded-lg border">
                         <h4 className="font-semibold text-sm mb-2">Location Verification</h4>
-                        <p className="text-xs text-muted-foreground mb-4">
-                            You must be within 20 meters of the doctor's clinic to submit a report.
-                        </p>
 
-                        {!verified ? (
-                            <div className="flex flex-col gap-2">
-                                <Button
-                                    onClick={handleVerifyLocation}
-                                    disabled={verifying}
-                                    className="w-full"
-                                >
-                                    {verifying ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Acquiring GPS...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Navigation className="h-4 w-4 mr-2" />
-                                            Verify My Location
-                                        </>
-                                    )}
-                                </Button>
-                                {errorMsg && (
-                                    <div className="flex items-center gap-2 text-red-600 text-sm mt-2">
-                                        <XCircle className="h-4 w-4" />
-                                        {errorMsg}
+                        {!selectedDoctor.isLocationVerified ? (
+                            // --- First-Time Capture Flow ---
+                            <div className="space-y-4">
+                                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-900/50 dark:text-yellow-200 p-3 rounded text-sm text-center">
+                                    <p className="font-semibold mb-1">Doctor location not recorded.</p>
+                                    <p>Please capture location & upload clinic image to continue.</p>
+                                </div>
+
+                                {!verified ? (
+                                    <div className="flex flex-col gap-3">
+                                        <div>
+                                            <label className="block text-xs font-semibold mb-1 text-muted-foreground">Location Image (Signage/Clinic) *</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                onChange={(e) => {
+                                                    if (e.target.files && e.target.files[0]) {
+                                                        setLocationImage(e.target.files[0]);
+                                                    }
+                                                }}
+                                                className="w-full text-sm border p-2 rounded bg-background"
+                                            />
+                                        </div>
+
+                                        <Button
+                                            onClick={handleFirstTimeCapture}
+                                            disabled={verifying}
+                                            className="w-full bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            {verifying ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Capturing & Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MapPin className="h-4 w-4 mr-2" />
+                                                    Capture GPS & Upload Image
+                                                </>
+                                            )}
+                                        </Button>
+
+                                        {errorMsg && (
+                                            <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
+                                                <XCircle className="h-4 w-4" />
+                                                {errorMsg}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-2 text-green-600">
+                                        <CheckCircle className="h-8 w-8 mb-1" />
+                                        <span className="font-bold">Location & Image Saved!</span>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-2 text-green-600">
-                                <CheckCircle className="h-8 w-8 mb-1" />
-                                <span className="font-bold">Location Verified!</span>
-                                <span className="text-xs">Distance: {distance}m</span>
-                            </div>
+                            // --- Standard Verification Flow ---
+                            <>
+                                <p className="text-xs text-muted-foreground mb-4">
+                                    You must be within 20 meters of the doctor's clinic to submit a report.
+                                </p>
+
+                                {!verified ? (
+                                    <div className="flex flex-col gap-2">
+                                        <Button
+                                            onClick={handleVerifyLocation}
+                                            disabled={verifying}
+                                            className="w-full"
+                                        >
+                                            {verifying ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Acquiring GPS...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Navigation className="h-4 w-4 mr-2" />
+                                                    Verify My Location
+                                                </>
+                                            )}
+                                        </Button>
+                                        {errorMsg && (
+                                            <div className="flex items-center gap-2 text-red-600 text-sm mt-2">
+                                                <XCircle className="h-4 w-4" />
+                                                {errorMsg}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-2 text-green-600">
+                                        <CheckCircle className="h-8 w-8 mb-1" />
+                                        <span className="font-bold">Location Verified!</span>
+                                        <span className="text-xs">Distance: {distance}m</span>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}

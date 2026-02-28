@@ -306,3 +306,59 @@ exports.deleteDoctor = async (req, res, next) => {
         next(err);
     }
 };
+
+// @desc    Upload location image and coordinates for First-Time Capture
+// @route   POST /api/v1/doctors/:id/location
+// @access  Private (Employee)
+exports.uploadLocation = async (req, res, next) => {
+    try {
+        const doctor = await Doctor.findById(req.params.id);
+
+        if (!doctor) {
+            return res.status(404).json({ success: false, error: 'Doctor not found' });
+        }
+
+        // Only allow if not yet verified or if admin
+        if (doctor.isLocationVerified && req.user.role !== 'admin') {
+            return res.status(400).json({ success: false, error: 'Location already captured and verified' });
+        }
+
+        const { latitude, longitude } = req.body;
+
+        if (!latitude || !longitude) {
+            return res.status(400).json({ success: false, error: 'Latitude and Longitude are required' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'Location image is required' });
+        }
+
+        // Update Doctor Document
+        doctor.location = {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        };
+        doctor.locationImageUrl = `/uploads/${req.file.filename}`;
+        doctor.locationCapturedBy = req.user.id;
+        doctor.locationCapturedAt = Date.now();
+        // The PRD mentions admin verification of the image, 
+        // however the user specifically stated "isLocationVerified is only for admin to review, it should not cause any problem in the workflow"
+        // And "First-time call establishes doctor location". 
+        // We will set this to true to indicate it HAS been captured, so the logic knows to fall back to the 20m check.
+        doctor.isLocationVerified = true;
+
+        await doctor.save();
+
+        // Invalidate cache
+        await del('doctors:*');
+
+        res.status(200).json({
+            success: true,
+            data: doctor,
+            message: 'Location captured and image uploaded successfully'
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};

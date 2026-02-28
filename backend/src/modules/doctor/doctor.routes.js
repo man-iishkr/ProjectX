@@ -4,10 +4,12 @@ const {
     getDoctor,
     createDoctor,
     updateDoctor,
-    deleteDoctor
+    deleteDoctor,
+    uploadLocation
 } = require('./doctor.controller');
 
 const { protect, authorize } = require('../../middleware/auth.middleware');
+const upload = require('../../middleware/upload.middleware');
 
 const router = express.Router();
 
@@ -23,5 +25,9 @@ router
     .get(getDoctor)
     .put(authorize('admin', 'hq'), updateDoctor)
     .delete(authorize('admin', 'hq'), deleteDoctor);
+
+router
+    .route('/:id/location')
+    .post(upload.single('image'), uploadLocation);
 
 module.exports = router;

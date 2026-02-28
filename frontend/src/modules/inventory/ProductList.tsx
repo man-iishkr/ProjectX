@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
-import { getProducts, createProduct } from '../../api/inventory.api';
+import { getProducts, createProduct, updateProduct } from '../../api/inventory.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 
 const ProductList: React.FC = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentId, setCurrentId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         code: '',
@@ -37,19 +39,43 @@ const ProductList: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const openCreateModal = () => {
+        setFormData({ name: '', code: '', unitPrice: '' });
+        setIsEditing(false);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (product: any) => {
+        setFormData({
+            name: product.name,
+            code: product.code,
+            unitPrice: product.unitPrice
+        });
+        setCurrentId(product._id);
+        setIsEditing(true);
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await createProduct({
+            const payload = {
                 ...formData,
                 unitPrice: Number(formData.unitPrice)
-            });
+            };
+
+            if (isEditing && currentId) {
+                await updateProduct(currentId, payload);
+            } else {
+                await createProduct(payload);
+            }
+
             setIsModalOpen(false);
             loadData();
             setFormData({ name: '', code: '', unitPrice: '' });
         } catch (err) {
             console.error(err);
-            alert('Failed to create product');
+            alert('Operation failed');
         }
     };
 
@@ -59,7 +85,7 @@ const ProductList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Product Management</h2>
-                <Button onClick={() => setIsModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Product
                 </Button>
@@ -72,12 +98,17 @@ const ProductList: React.FC = () => {
                     { header: 'Code', accessor: 'code' },
                     { header: 'Unit Price', accessor: (row) => `₹${row.unitPrice}` },
                 ]}
+                actions={(row) => (
+                    <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                    </Button>
+                )}
             />
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Add Product"
+                title={isEditing ? 'Edit Product' : 'Add Product'}
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,7 +147,7 @@ const ProductList: React.FC = () => {
                             Cancel
                         </Button>
                         <Button type="submit">
-                            Create
+                            {isEditing ? 'Update' : 'Create'}
                         </Button>
                     </div>
                 </form>

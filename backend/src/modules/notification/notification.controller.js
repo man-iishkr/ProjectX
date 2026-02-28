@@ -3,6 +3,13 @@ const Expense = require('../expense/expense.model');
 const Leave = require('../leave/leave.model');
 const Inventory = require('../inventory/inventory.model');
 
+// Helper to get month match expression
+const getMonthMatchExpr = (field) => ({
+    $expr: {
+        $eq: [{ $month: field }, { $month: new Date() }]
+    }
+});
+
 // @desc    Get dashboard notifications
 // @route   GET /api/v1/notifications
 // @access  Private (Admin)
@@ -15,7 +22,34 @@ exports.getNotifications = async (req, res, next) => {
         const pendingExpenses = await Expense.countDocuments({ status: 'Pending' });
         const pendingLeaves = await Leave.countDocuments({ status: 'pending' });
 
+        // 2. Events (Birthdays/Anniversaries) in Current Month
+        // Find doctors where month(dob) == current month OR month(dom) == current month
+        const currentMonth = new Date().getMonth() + 1; // JS months are 0-indexed, Mongo is 1-indexed usually but $month returns 1-12
+
+        const eventDoctors = await Doctor.find({
+            $or: [
+                { $expr: { $eq: [{ $month: '$dob' }, currentMonth] } },
+                { $expr: { $eq: [{ $month: '$dom' }, currentMonth] } }
+            ]
+        }).select('name dob dom hq').populate('hq', 'name');
+
         const notifications = [];
+
+        if (eventDoctors.length > 0) {
+            notifications.push({
+                id: 'doc_events',
+                type: 'alert', // or 'info'
+                message: `${eventDoctors.length} Doctor(s) have Birthdays/Anniversaries this month`,
+                link: '/admin/doctors?filter=events', // Potentially add a filter query param
+                count: eventDoctors.length,
+                details: eventDoctors.map(d => {
+                    const isBday = d.dob && new Date(d.dob).getMonth() === currentMonth - 1;
+                    const type = isBday ? 'Birthday' : 'Anniversary';
+                    const date = isBday ? d.dob : d.dom;
+                    return `${d.name} (${type}: ${new Date(date).getDate()}/${currentMonth})`;
+                })
+            });
+        }
 
         if (pendingDoctors > 0) {
             notifications.push({
