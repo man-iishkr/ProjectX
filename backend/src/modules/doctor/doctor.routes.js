@@ -21,6 +21,10 @@ router
     .post(createDoctor);
 
 router
+    .route('/batch-approve')
+    .put(authorize('admin', 'hq'), exports.batchApproveDoctors || require('./doctor.controller').batchApproveDoctors);
+
+router
     .route('/:id')
     .get(getDoctor)
     .put(authorize('admin', 'hq'), updateDoctor)

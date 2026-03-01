@@ -89,4 +89,13 @@ router.delete('/targets/annual', authorize('admin', 'hq'), async (req, res, next
     } catch (err) { next(err); }
 });
 
+// WEEKLY ACHIEVEMENT CRUD
+const {
+    submitWeeklyAchievement,
+    getMonthlyProgress
+} = require('../target/weeklyAchievement.controller');
+
+router.post('/targets/weekly-achievements', authorize('employee'), submitWeeklyAchievement);
+router.get('/targets/progress', authorize('admin', 'hq', 'employee'), getMonthlyProgress);
+
 module.exports = router;

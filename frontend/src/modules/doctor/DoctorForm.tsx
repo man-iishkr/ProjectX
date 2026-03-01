@@ -161,6 +161,29 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handlePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/\D/g, '');
+        setFormData(prev => ({ ...prev, pincode: val }));
+
+        if (val.length === 6) {
+            try {
+                const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+                const data = await res.json();
+                if (data && data[0] && data[0].Status === 'Success') {
+                    const postOffice = data[0].PostOffice[0];
+                    setFormData(prev => ({
+                        ...prev,
+                        pincode: val,
+                        city: postOffice.District,
+                        state: postOffice.State
+                    }));
+                }
+            } catch (err) {
+                console.error("Pincode lookup failed", err);
+            }
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -171,9 +194,10 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
             }
             onSuccess();
             onClose();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert('Failed to save doctor');
+            const errorMsg = err.response?.data?.error || err.message || 'Failed to save doctor';
+            alert(`Failed to save: \n${errorMsg}`);
         }
     };
 
@@ -233,7 +257,8 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     <label className="block text-sm font-medium mb-1">Route From *</label>
                     <HybridRouteSearch
                         value={formData.routeFrom}
-                        onSelect={(addr, data) => handleRouteSelect('from', addr, data)}
+                        onChangeText={(text: string) => setFormData(prev => ({ ...prev, routeFrom: text }))}
+                        onSelect={(addr: string, data: any) => handleRouteSelect('from', addr, data)}
                         placeholder="Start Point"
                         className="w-full"
                         hqId={formData.hq}
@@ -248,7 +273,8 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     <label className="block text-sm font-medium mb-1">Route To *</label>
                     <HybridRouteSearch
                         value={formData.routeTo}
-                        onSelect={(addr, data) => handleRouteSelect('to', addr, data)}
+                        onChangeText={(text: string) => setFormData(prev => ({ ...prev, routeTo: text }))}
+                        onSelect={(addr: string, data: any) => handleRouteSelect('to', addr, data)}
                         placeholder="End Point"
                         className="w-full"
                         hqId={formData.hq}
@@ -338,6 +364,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                     <label className="block text-sm font-medium mb-1">Clinic Address *</label>
                     <MapmyIndiaSearch
                         value={formData.clinicAddress}
+                        onChangeText={(text: string) => setFormData(prev => ({ ...prev, clinicAddress: text }))}
                         onSelect={handleLocationSelect}
                         placeholder="Search Clinic Location..."
                         className="w-full"
@@ -366,7 +393,7 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onClose, onSuccess, initialData
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Pincode</label>
-                    <input name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border p-2 rounded bg-background text-foreground" />
+                    <input name="pincode" value={formData.pincode} onChange={handlePincodeChange} maxLength={6} className="w-full border p-2 rounded bg-background text-foreground" />
                 </div>
 
                 <div className="md:col-span-2">

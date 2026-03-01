@@ -51,3 +51,16 @@ export const useDeleteDoctor = () => {
         },
     });
 };
+
+export const useBatchApproveDoctors = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (doctorIds: string[]) => {
+            const res = await api.put(`/doctors/batch-approve`, { doctorIds });
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['doctors'] });
+        },
+    });
+};

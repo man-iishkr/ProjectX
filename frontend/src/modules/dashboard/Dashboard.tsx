@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { analyticsAPI, type DashboardSummary } from '../../api/analytics.api';
 import DashboardCalendar from './DashboardCalendar';
+import WeeklyProgressView from '../target/WeeklyProgressView';
 import { Users, TrendingUp, Network } from 'lucide-react';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import {
@@ -319,6 +320,11 @@ const Dashboard: React.FC = () => {
                     </Card>
                 </div>
             )}
+
+            {/* Weekly Target Tracking */}
+            <div className="pt-4 border-t border-border">
+                <WeeklyProgressView />
+            </div>
 
             {/* Bottom Row: Calendar */}
             <div className="grid grid-cols-1">

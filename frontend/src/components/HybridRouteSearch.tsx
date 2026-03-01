@@ -6,6 +6,7 @@ import { MapPin, Route as RouteIcon, Loader2 } from 'lucide-react';
 interface HybridRouteSearchProps {
     value?: string;
     onSelect: (address: string, data?: any) => void;
+    onChangeText?: (text: string) => void;
     placeholder?: string;
     className?: string;
     hqId?: string; // To filter local routes
@@ -15,6 +16,7 @@ interface HybridRouteSearchProps {
 const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
     value = '',
     onSelect,
+    onChangeText,
     placeholder = "Search Route...",
     className = "",
     hqId,
@@ -32,17 +34,30 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
     }, [value]);
 
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
+        function handleClickOutside(event: MouseEvent | TouchEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
     }, [wrapperRef]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            setIsOpen(false);
+        }
+    };
 
     const handleSearch = async (text: string) => {
         setQuery(text);
+        if (onChangeText) {
+            onChangeText(text); // Propagation for manual entry
+        }
 
         if (text.length > 2) {
             setLoading(true);
@@ -62,8 +77,6 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
                     setIsOpen(true);
                 } else {
                     // 2. No local match? Call MapmyIndia API
-                    // "do not send api call to mapmyindia until string entered is different from existing route names"
-                    // This implies if we found nothing local, we search remote.
                     const remotePlaces = await searchPlaces(text, locationBias);
 
                     if (remotePlaces && Array.isArray(remotePlaces)) {
@@ -94,9 +107,13 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
     };
 
     const handleSelectSuggestion = (s: any) => {
-        setQuery(s.value);
+        const selectedValue = s.value;
+        setQuery(selectedValue);
+        if (onChangeText) {
+            onChangeText(selectedValue);
+        }
         setIsOpen(false);
-        onSelect(s.value, s);
+        onSelect(selectedValue, s);
     };
 
     return (
@@ -106,25 +123,26 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
                     type="text"
                     value={query}
                     onChange={(e) => handleSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder={placeholder}
-                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground border-input"
                 />
                 <div className="absolute left-2 top-2.5">
                     {loading ? (
                         <Loader2 className="h-4 w-4 text-primary animate-spin" />
                     ) : (
-                        <RouteIcon className="h-4 w-4 text-gray-400" />
+                        <RouteIcon className="h-4 w-4 text-muted-foreground" />
                     )}
                 </div>
             </div>
 
             {isOpen && suggestions.length > 0 && (
-                <ul className="absolute z-50 w-full bg-card dark:bg-gray-800 border dark:border-gray-700 rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
+                <ul className="absolute z-50 w-full bg-popover text-popover-foreground border border-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
                     {suggestions.map((s, idx) => (
                         <li
                             key={idx}
                             onClick={() => handleSelectSuggestion(s)}
-                            className="p-2 hover:bg-muted/50 dark:hover:bg-gray-700 cursor-pointer text-sm border-b dark:border-gray-700 last:border-0 flex items-center gap-2"
+                            className="p-2 hover:bg-muted cursor-pointer text-sm border-b border-border last:border-0 flex items-center gap-2"
                         >
                             {s.type === 'route' ? (
                                 <RouteIcon className="h-4 w-4 text-blue-500" />
@@ -139,7 +157,7 @@ const HybridRouteSearch: React.FC<HybridRouteSearchProps> = ({
                             </div>
                         </li>
                     ))}
-                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/30">
+                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/50 border-t border-border">
                         {suggestions[0]?.type === 'route' ? 'Local Routes' : 'MapmyIndia'}
                     </div>
                 </ul>

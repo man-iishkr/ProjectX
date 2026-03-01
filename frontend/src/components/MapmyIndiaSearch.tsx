@@ -11,6 +11,7 @@ interface Suggestion {
 interface MapmyIndiaSearchProps {
     value?: string;
     onSelect: (address: string, lat?: number, lng?: number, eLoc?: string) => void;
+    onChangeText?: (text: string) => void;
     placeholder?: string;
     className?: string;
     locationBias?: string; // "lat,lng"
@@ -19,6 +20,7 @@ interface MapmyIndiaSearchProps {
 const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
     value = '',
     onSelect,
+    onChangeText,
     placeholder = "Search location...",
     className = "",
     locationBias
@@ -36,17 +38,30 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
 
     // Close on click outside
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
+        function handleClickOutside(event: MouseEvent | TouchEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
     }, [wrapperRef]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            setIsOpen(false);
+        }
+    };
 
     const handleSearch = async (text: string) => {
         setQuery(text);
+        if (onChangeText) {
+            onChangeText(text); // Propagate free typing
+        }
         // Only search if user typed > 2 chars
         if (text.length > 2) {
             setLoading(true);
@@ -75,6 +90,9 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
     const handleSelect = async (suggestion: Suggestion) => {
         const fullAddress = `${suggestion.placeName}, ${suggestion.placeAddress}`;
         setQuery(fullAddress);
+        if (onChangeText) {
+            onChangeText(fullAddress);
+        }
         setIsOpen(false);
         setLoading(true);
 
@@ -110,28 +128,29 @@ const MapmyIndiaSearch: React.FC<MapmyIndiaSearchProps> = ({
                     type="text"
                     value={query}
                     onChange={(e) => handleSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder={placeholder}
-                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                    className="w-full border p-2 rounded pl-8 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground border-input"
                 />
-                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 {loading && (
                     <Loader2 className="absolute right-2 top-2.5 h-4 w-4 text-primary animate-spin" />
                 )}
             </div>
 
             {isOpen && suggestions.length > 0 && (
-                <ul className="absolute z-50 w-full bg-card dark:bg-gray-800 border dark:border-gray-700 rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
+                <ul className="absolute z-50 w-full bg-popover text-popover-foreground border border-border rounded shadow-lg mt-1 max-h-60 overflow-y-auto">
                     {suggestions.map((s) => (
                         <li
                             key={s.eLoc}
                             onClick={() => handleSelect(s)}
-                            className="p-2 hover:bg-muted/50 dark:hover:bg-gray-700 cursor-pointer text-sm border-b dark:border-gray-700 last:border-0"
+                            className="p-2 hover:bg-muted cursor-pointer text-sm border-b border-border last:border-0"
                         >
                             <div className="font-medium text-foreground">{s.placeName}</div>
                             <div className="text-xs text-muted-foreground truncate">{s.placeAddress}</div>
                         </li>
                     ))}
-                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/30">
+                    <div className="p-1 px-2 text-[10px] text-right text-muted-foreground bg-muted/50 border-t border-border">
                         Powered by MapmyIndia
                     </div>
                 </ul>

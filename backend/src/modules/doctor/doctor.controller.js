@@ -126,7 +126,7 @@ exports.getDoctors = async (req, res, next) => {
             query = Doctor.find({ hq: req.user.hq });
         }
 
-        query = query.populate('hq', 'name');
+        query = query.populate('hq', 'name').populate('createdBy', 'name');
 
         const doctors = await query;
 
@@ -358,6 +358,38 @@ exports.uploadLocation = async (req, res, next) => {
             message: 'Location captured and image uploaded successfully'
         });
 
+    } catch (err) {
+        next(err);
+    }
+};
+// @desc    Batch approve doctors
+// @route   PUT /api/v1/doctors/batch-approve
+// @access  Private (Admin/HQ)
+exports.batchApproveDoctors = async (req, res, next) => {
+    try {
+        const { doctorIds } = req.body;
+
+        if (!doctorIds || !Array.isArray(doctorIds) || doctorIds.length === 0) {
+            return res.status(400).json({ success: false, error: 'Please provide an array of doctor IDs' });
+        }
+
+        let query = { _id: { $in: doctorIds } };
+
+        if (req.user.role === 'hq') {
+            query.hq = req.user.hq;
+        } else if (req.user.role === 'employee') {
+            return res.status(403).json({ success: false, error: 'Not authorized to approve doctors' });
+        }
+
+        await Doctor.updateMany(query, { approvalStatus: 'Approved' }, { runValidators: false });
+
+        // Invalidate cache
+        await del('doctors:*');
+
+        res.status(200).json({
+            success: true,
+            message: `${doctorIds.length} doctors approved successfully`
+        });
     } catch (err) {
         next(err);
     }

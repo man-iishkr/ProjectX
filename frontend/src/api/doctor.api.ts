@@ -21,6 +21,11 @@ export const deleteDoctor = async (id: string) => {
     return data;
 };
 
+export const batchApproveDoctors = async (doctorIds: string[]) => {
+    const { data } = await api.put(`/doctors/batch-approve`, { doctorIds });
+    return data;
+};
+
 export const captureDoctorLocation = async (id: string, formData: FormData) => {
     const { data } = await api.post(`/doctors/${id}/location`, formData, {
         headers: {
