@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { MapPin, CheckCircle, XCircle, Loader2, Navigation } from 'lucide-react';
+import { MapPin, CheckCircle, XCircle, Loader2, Navigation, Users } from 'lucide-react';
 import { getDoctors } from '../../api/doctor.api';
 import { createCallReport } from '../../api/call.api';
 import { getProducts } from '../../api/inventory.api';
+import { getHQs } from '../../api/hq.api';
+import { getEmployees } from '../../api/employee.api';
 import { captureDoctorLocation } from '../../api/doctor.api';
-// import { useAuth } from '../../context/AuthContext'; // Not used in this version?
+import { useAuth } from '../../context/AuthContext';
 
 // Haversine formula to calculate distance in meters
 const getDistanceFromLatLonInM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -27,7 +29,7 @@ const deg2rad = (deg: number) => {
 };
 
 const ReportCall: React.FC = () => {
-    // const { user } = useAuth();
+    const { user } = useAuth();
     const [doctors, setDoctors] = useState<any[]>([]);
     const [selectedDoctorId, setSelectedDoctorId] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
@@ -35,6 +37,12 @@ const ReportCall: React.FC = () => {
     // Products State
     const [products, setProducts] = useState<any[]>([]);
     const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+    // Collaboration State
+    const [hqs, setHqs] = useState<any[]>([]);
+    const [selectedHQ, setSelectedHQ] = useState('');
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [selectedAlongWith, setSelectedAlongWith] = useState<string[]>([]);
 
     // Location State
     const [verifying, setVerifying] = useState(false);
@@ -51,7 +59,44 @@ const ReportCall: React.FC = () => {
     useEffect(() => {
         loadDoctors();
         loadProducts();
+        loadHQs();
     }, []);
+
+    // Load employees when HQ selection changes
+    useEffect(() => {
+        if (selectedHQ) {
+            loadEmployees(selectedHQ);
+        } else {
+            setEmployees([]);
+            setSelectedAlongWith([]);
+        }
+    }, [selectedHQ]);
+
+    const loadHQs = async () => {
+        try {
+            const res = await getHQs();
+            if (res.success) setHqs(res.data);
+        } catch (err) { /* ignore */ }
+    };
+
+    const loadEmployees = async (hqId: string) => {
+        try {
+            const res = await getEmployees(hqId);
+            if (res.success) {
+                // Filter out self
+                const filtered = res.data.filter((e: any) => e._id !== user?._id);
+                setEmployees(filtered);
+            }
+        } catch (err) { /* ignore */ }
+    };
+
+    const handleAlongWithToggle = (empId: string) => {
+        setSelectedAlongWith(prev =>
+            prev.includes(empId)
+                ? prev.filter(id => id !== empId)
+                : [...prev, empId]
+        );
+    };
 
     const loadProducts = async () => {
         try {
@@ -209,7 +254,8 @@ const ReportCall: React.FC = () => {
                 latitude: userLocation.lat,
                 longitude: userLocation.lng,
                 remarks: timestampedRemarks,
-                products: selectedProductIds // Send selected products
+                products: selectedProductIds,
+                alongWith: selectedAlongWith
             });
 
             if (res.success) {
@@ -220,7 +266,9 @@ const ReportCall: React.FC = () => {
                 setVerified(false);
                 setDistance(null);
                 setRemarks('');
-                setSelectedProductIds([]); // Reset products
+                setSelectedProductIds([]);
+                setSelectedAlongWith([]);
+                setSelectedHQ('');
                 setUserLocation(null);
                 loadDoctors();
             } else {
@@ -258,6 +306,56 @@ const ReportCall: React.FC = () => {
                             <option key={d._id} value={d._id}>{d.name} ({d.area})</option>
                         ))}
                     </select>
+                </div>
+
+                {/* Collaboration Section */}
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Along With (Optional)
+                    </h4>
+
+                    {/* HQ Filter */}
+                    <div>
+                        <label className="block text-xs font-medium mb-1 text-muted-foreground">Filter by Headquarter</label>
+                        <select
+                            value={selectedHQ}
+                            onChange={(e) => { setSelectedHQ(e.target.value); setSelectedAlongWith([]); }}
+                            className="w-full border p-2 rounded bg-background text-sm"
+                        >
+                            <option value="">-- Select HQ to filter --</option>
+                            {hqs.map((hq: any) => (
+                                <option key={hq._id} value={hq._id}>{hq.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Employee Multi-Select */}
+                    {selectedHQ && (
+                        <div>
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">
+                                Select Colleagues ({selectedAlongWith.length} selected)
+                            </label>
+                            <div className="border rounded p-2 max-h-36 overflow-y-auto bg-background space-y-1">
+                                {employees.length === 0 ? (
+                                    <span className="text-xs text-muted-foreground">No employees found for this HQ.</span>
+                                ) : (
+                                    employees.map((emp: any) => (
+                                        <label key={emp._id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent p-1 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedAlongWith.includes(emp._id)}
+                                                onChange={() => handleAlongWithToggle(emp._id)}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span>{emp.name}</span>
+                                            {emp.designation && <span className="text-xs text-muted-foreground">({emp.designation})</span>}
+                                        </label>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* 2. Verify Location or First-Time Capture */}

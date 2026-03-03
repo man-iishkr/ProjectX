@@ -1,19 +1,16 @@
 const Expense = require('./expense.model');
-const fs = require('fs');
+const { getSubordinateIds, isSubordinate } = require('../../middleware/auth.middleware');
 
 // @desc    Create Expense
 // @route   POST /api/v1/expenses
-// @access  Private (Employee)
+// @access  Private (Employee/BDE)
 exports.createExpense = async (req, res, next) => {
     try {
-        // Assuming file is uploaded via middleware and path is in req.file
         let imageUrl = '';
 
         if (req.file) {
-            imageUrl = req.file.path; // Or Cloudinary URL if using that
-        }
-        // If no file uploaded but URL provided (e.g. separate upload)
-        else if (req.body.imageUrl) {
+            imageUrl = req.file.path;
+        } else if (req.body.imageUrl) {
             imageUrl = req.body.imageUrl;
         }
 
@@ -39,7 +36,7 @@ exports.createExpense = async (req, res, next) => {
     }
 };
 
-// @desc    Get Expenses
+// @desc    Get Expenses (scoped by hierarchy)
 // @route   GET /api/v1/expenses
 // @access  Private
 exports.getExpenses = async (req, res, next) => {
@@ -47,17 +44,15 @@ exports.getExpenses = async (req, res, next) => {
         let query;
 
         if (req.user.role === 'admin') {
-            query = Expense.find().populate('employee', 'name role hq');
-        } else if (req.user.role === 'hq') {
-            // Find expenses of employees in this HQ
-            // We can use aggregation lookups or filter by employee IDs.
-            // Let's rely on finding Users in this HQ for now.
-            const users = await require('../auth/auth.model').find({ hq: req.user.hq }).select('_id');
-            const userIds = users.map(u => u._id);
-
-            query = Expense.find({ employee: { $in: userIds } }).populate('employee', 'name');
-        } else {
+            // Admin sees all
+            query = Expense.find().populate('employee', 'name designation hq');
+        } else if (req.user.role === 'bde') {
+            // BDE sees only their own
             query = Expense.find({ employee: req.user.id });
+        } else {
+            // SM/RSM/ASM: see their subordinates' expenses
+            const subordinateIds = await getSubordinateIds(req.user._id, false);
+            query = Expense.find({ employee: { $in: subordinateIds } }).populate('employee', 'name designation');
         }
 
         const expenses = await query;
@@ -74,10 +69,10 @@ exports.getExpenses = async (req, res, next) => {
 
 // @desc    Update Expense Status (Approve/Reject)
 // @route   PUT /api/v1/expenses/:id
-// @access  Private (Admin/HQ)
+// @access  Private (Admin/SM/RSM/ASM)
 exports.updateExpenseStatus = async (req, res, next) => {
     try {
-        const { status, amount } = req.body; // 'Approved' or 'Rejected', and optional new amount
+        const { status, amount } = req.body;
 
         let expense = await Expense.findById(req.params.id).populate('employee');
 
@@ -86,14 +81,14 @@ exports.updateExpenseStatus = async (req, res, next) => {
         }
 
         // Access check
-        if (req.user.role === 'employee') {
+        if (req.user.role === 'bde') {
             return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
-        if (req.user.role === 'hq') {
-            // Verify employee belongs to HQ
-            // Should implement util for this: isSubordinate(req.user, expense.employee)
-            if (expense.employee.hq.toString() !== req.user.hq.toString()) {
+        if (req.user.role !== 'admin') {
+            // Verify employee is a subordinate
+            const isSub = await isSubordinate(req.user._id, expense.employee._id);
+            if (!isSub) {
                 return res.status(403).json({ success: false, error: 'Not authorized for this employee' });
             }
         }
@@ -112,7 +107,7 @@ exports.updateExpenseStatus = async (req, res, next) => {
             const year = expenseDate.getFullYear();
 
             const Salary = require('../salary/salary.model');
-            const User = require('../auth/auth.model'); // To get base salary if creating new
+            const User = require('../auth/auth.model');
 
             let salary = await Salary.findOne({
                 employee: expense.employee._id,
@@ -121,7 +116,6 @@ exports.updateExpenseStatus = async (req, res, next) => {
             });
 
             if (!salary) {
-                // Fetch user to get base details
                 const employee = await User.findById(expense.employee._id);
                 if (employee) {
                     salary = await Salary.create({

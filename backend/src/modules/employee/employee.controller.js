@@ -1,16 +1,17 @@
 const User = require('../auth/auth.model');
+const { getSubordinateIds } = require('../../middleware/auth.middleware');
 
-// @desc    Create new employee (Admin/HQ?) - Usually Admin
+// @desc    Create new employee
 // @route   POST /api/v1/employees
-// @access  Private (Admin)
+// @access  Private (Admin, SM, RSM, ASM)
 exports.createEmployee = async (req, res, next) => {
     try {
-        // Force role to employee
-        req.body.role = 'employee';
-
-        // If HQ is creating, force HQ ID to their own
-        if (req.user.role === 'hq') {
-            req.body.hq = req.user.hq;
+        // Validate that the reporting manager has a higher role than the new employee
+        if (req.body.reportingTo && req.body.role) {
+            const manager = await User.findById(req.body.reportingTo);
+            if (!manager) {
+                return res.status(400).json({ success: false, error: 'Reporting manager not found' });
+            }
         }
 
         const user = await User.create(req.body);
@@ -24,49 +25,40 @@ exports.createEmployee = async (req, res, next) => {
     }
 };
 
-// @desc    Get all employees
+// @desc    Get all employees (scoped by hierarchy)
 // @route   GET /api/v1/employees
-// @access  Private (Admin/HQ)
+// @access  Private (Admin/SM/RSM/ASM)
 exports.getEmployees = async (req, res, next) => {
     try {
-        let query;
+        const status = req.query.status || 'active';
 
-        const status = req.query.status || 'active'; // active, past, all
-
-        let filter = { role: 'employee' };
-
-        // Status Filter Logic
+        // Base filter for active/past — always exclude admin
+        let filter = { role: { $ne: 'admin' } };
         const now = new Date();
         if (status === 'active') {
             filter.$or = [
-                { resignationDate: { $exists: false } }, // Field doesn't exist
-                { resignationDate: null },               // Field is null
-                { resignationDate: { $gt: now } }        // Date is in future
+                { resignationDate: { $exists: false } },
+                { resignationDate: null },
+                { resignationDate: { $gt: now } }
             ];
         } else if (status === 'past') {
-            filter.resignationDate = { $lte: now };      // Date is past or today
+            filter.resignationDate = { $lte: now };
         }
-        // 'all' passes no extra filter
 
-        // If Admin, get all matching filter
         if (req.user.role === 'admin') {
+            // Admin sees everyone, with optional HQ filter for data segmentation
             if (req.query.hq) {
                 filter.hq = req.query.hq;
             }
-        }
-        // If HQ, get only their employees matching filter
-        else if (req.user.role === 'hq') {
-            filter.hq = req.user.hq;
         } else {
-            return res.status(403).json({ success: false, error: 'Not authorized' });
+            // SM/RSM/ASM: see only their subordinates
+            const subordinateIds = await getSubordinateIds(req.user._id, false);
+            filter._id = { $in: subordinateIds };
         }
 
-        query = User.find(filter);
-
-        // Populate HQ details
-        query = query.populate('hq', 'name location');
-
-        const employees = await query;
+        const employees = await User.find(filter)
+            .populate('hq', 'name location')
+            .populate('reportingTo', 'name designation');
 
         res.status(200).json({
             success: true,
@@ -78,22 +70,64 @@ exports.getEmployees = async (req, res, next) => {
     }
 };
 
+// @desc    Get list of potential reporting managers (users with a higher role)
+// @route   GET /api/v1/employees/managers
+// @access  Private (Admin/SM/RSM/ASM)
+exports.getPotentialManagers = async (req, res, next) => {
+    try {
+        const { forRole } = req.query; // The role of the employee being created
+
+        // Roles that can BE a manager based on hierarchy
+        const roleOrder = ['admin', 'sm', 'rsm', 'asm', 'bde'];
+        const forRoleIdx = roleOrder.indexOf(forRole);
+
+        // Valid managers are those with HIGHER authority (lower index)
+        let managerRoles = ['admin'];
+        if (forRoleIdx > 0) {
+            managerRoles = roleOrder.slice(0, forRoleIdx);
+        }
+
+        let filter = { role: { $in: managerRoles } };
+
+        // If non-admin making a request, only show managers within their own subordinate tree (or themselves)
+        if (req.user.role !== 'admin') {
+            const mySubIds = await getSubordinateIds(req.user._id, true); // include self
+            filter._id = { $in: mySubIds, ...filter._id };
+        }
+
+        const managers = await User.find(filter).select('_id name designation role');
+
+        res.status(200).json({
+            success: true,
+            data: managers
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // @desc    Get single employee
 // @route   GET /api/v1/employees/:id
 // @access  Private
 exports.getEmployee = async (req, res, next) => {
     try {
-        const user = await User.findById(req.params.id).populate('hq', 'name location');
+        const user = await User.findById(req.params.id)
+            .populate('hq', 'name location')
+            .populate('reportingTo', 'name designation');
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'Employee not found' });
         }
 
-        // Access check
-        if (req.user.role === 'hq' && user.hq.toString() !== req.user.hq.toString()) {
-            return res.status(403).json({ success: false, error: 'Not authorized to view this employee' });
+        // Access check: admin sees all, others can only see subordinates or self
+        if (req.user.role !== 'admin') {
+            const { isSubordinate } = require('../../middleware/auth.middleware');
+            const isSub = await isSubordinate(req.user._id, req.params.id);
+            const isSelf = req.user._id.toString() === req.params.id;
+            if (!isSub && !isSelf) {
+                return res.status(403).json({ success: false, error: 'Not authorized to view this employee' });
+            }
         }
-        // Employee can view self? usually handled by /me
 
         res.status(200).json({
             success: true,
@@ -115,8 +149,6 @@ exports.updateEmployee = async (req, res, next) => {
             return res.status(404).json({ success: false, error: 'Employee not found' });
         }
 
-        // Allow Admin to update 
-        // HQ might be allowed to update some fields? For now Admin only
         if (req.user.role !== 'admin') {
             return res.status(403).json({ success: false, error: 'Not authorized to update' });
         }

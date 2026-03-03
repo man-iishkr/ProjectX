@@ -1,19 +1,27 @@
 const Leave = require('./leave.model');
+const { getSubordinateIds, isSubordinate } = require('../../middleware/auth.middleware');
 
-// Get all leave requests (admin/hq can see all, employee sees own)
+// Get all leave requests (scoped by hierarchy)
 exports.getAllLeaves = async (req, res) => {
     try {
         const { role, _id } = req.user;
 
         let query = {};
-        if (role === 'employee') {
-            // For employees, filter by _id directly
+
+        if (role === 'admin') {
+            // Admin sees all
+        } else if (role === 'bde') {
+            // BDE sees only their own
             query.employee = _id;
+        } else {
+            // SM/RSM/ASM: see their subordinates' leaves
+            const subordinateIds = await getSubordinateIds(_id, false);
+            query.employee = { $in: subordinateIds };
         }
 
         const leaves = await Leave.find(query)
-            .populate('employee', 'name email employeeId')
-            .populate('approvedBy', 'name email')
+            .populate('employee', 'name username designation')
+            .populate('approvedBy', 'name designation')
             .sort({ createdAt: -1 });
 
         res.json(leaves);
@@ -26,8 +34,8 @@ exports.getAllLeaves = async (req, res) => {
 exports.getLeaveById = async (req, res) => {
     try {
         const leave = await Leave.findById(req.params.id)
-            .populate('employee', 'name email employeeId')
-            .populate('approvedBy', 'name email');
+            .populate('employee', 'name username designation')
+            .populate('approvedBy', 'name designation');
 
         if (!leave) {
             return res.status(404).json({ message: 'Leave not found' });
@@ -49,6 +57,13 @@ exports.createLeave = async (req, res) => {
             return res.status(400).json({ message: 'Start date must be before end date' });
         }
 
+        // Prevent backdating leaves
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (new Date(startDate) < today) {
+            return res.status(400).json({ message: 'Cannot schedule leave in the past' });
+        }
+
         const leave = new Leave({
             employee: employeeId,
             leaveType,
@@ -59,7 +74,7 @@ exports.createLeave = async (req, res) => {
         });
 
         await leave.save();
-        await leave.populate('employee', 'name email employeeId');
+        await leave.populate('employee', 'name username designation');
 
         res.status(201).json({ message: 'Leave request created', leave });
     } catch (error) {
@@ -94,7 +109,7 @@ exports.updateLeave = async (req, res) => {
         if (attachments) leave.attachments = attachments;
 
         await leave.save();
-        await leave.populate('employee', 'name email employeeId');
+        await leave.populate('employee', 'name username designation');
 
         res.json({ message: 'Leave updated', leave });
     } catch (error) {
@@ -102,10 +117,10 @@ exports.updateLeave = async (req, res) => {
     }
 };
 
-// Approve leave (admin/hq only)
+// Approve leave (Admin/SM/RSM/ASM only — must be a manager of the employee)
 exports.approveLeave = async (req, res) => {
     try {
-        const leave = await Leave.findById(req.params.id);
+        const leave = await Leave.findById(req.params.id).populate('employee');
 
         if (!leave) {
             return res.status(404).json({ message: 'Leave not found' });
@@ -115,8 +130,16 @@ exports.approveLeave = async (req, res) => {
             return res.status(400).json({ message: 'Leave is not pending' });
         }
 
+        // Authorization: only admin or direct/indirect manager can approve
+        if (req.user.role !== 'admin') {
+            const isSub = await isSubordinate(req.user._id, leave.employee._id);
+            if (!isSub) {
+                return res.status(403).json({ message: 'Not authorized to approve this leave' });
+            }
+        }
+
         leave.status = 'approved';
-        leave.approvedBy = req.user.userId;
+        leave.approvedBy = req.user._id;
         leave.approvedAt = Date.now();
 
         await leave.save();
@@ -127,14 +150,13 @@ exports.approveLeave = async (req, res) => {
         const year = startDate.getFullYear();
 
         const Salary = require('../salary/salary.model');
-        const User = require('../auth/auth.model'); // To get base salary if creating new
+        const User = require('../auth/auth.model');
 
-        // Calculate Days
         const diffTime = Math.abs(new Date(leave.endDate) - new Date(leave.startDate));
         const durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
         let salary = await Salary.findOne({
-            employee: leave.employee._id || leave.employee, // Handle populated or ID
+            employee: leave.employee._id || leave.employee,
             'period.month': month,
             'period.year': year
         });
@@ -161,12 +183,12 @@ exports.approveLeave = async (req, res) => {
     }
 };
 
-// Reject leave (admin/hq only)
+// Reject leave (Admin/SM/RSM/ASM only)
 exports.rejectLeave = async (req, res) => {
     try {
         const { rejectionReason } = req.body;
 
-        const leave = await Leave.findById(req.params.id);
+        const leave = await Leave.findById(req.params.id).populate('employee');
 
         if (!leave) {
             return res.status(404).json({ message: 'Leave not found' });
@@ -176,8 +198,16 @@ exports.rejectLeave = async (req, res) => {
             return res.status(400).json({ message: 'Leave is not pending' });
         }
 
+        // Authorization: only admin or direct/indirect manager can reject
+        if (req.user.role !== 'admin') {
+            const isSub = await isSubordinate(req.user._id, leave.employee._id);
+            if (!isSub) {
+                return res.status(403).json({ message: 'Not authorized to reject this leave' });
+            }
+        }
+
         leave.status = 'rejected';
-        leave.approvedBy = req.user.userId;
+        leave.approvedBy = req.user._id;
         leave.approvedAt = Date.now();
         leave.rejectionReason = rejectionReason || 'No reason provided';
 
@@ -206,7 +236,7 @@ exports.cancelLeave = async (req, res) => {
         leave.status = 'cancelled';
 
         await leave.save();
-        await leave.populate('employee', 'name email employeeId');
+        await leave.populate('employee', 'name username designation');
 
         res.json({ message: 'Leave cancelled', leave });
     } catch (error) {

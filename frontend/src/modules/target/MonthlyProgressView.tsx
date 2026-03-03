@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFinancialYearProgress, useSubmitMonthlyAchievement } from '../../hooks/useMonthlyAchievements';
 import { useHQs } from '../../hooks/useHQs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import { Target, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 
 const MonthlyProgressView: React.FC = () => {
@@ -30,7 +30,6 @@ const MonthlyProgressView: React.FC = () => {
     const submitMutation = useSubmitMonthlyAchievement();
 
     const progress = progressRes?.data;
-    const targetValue = progress?.totalYearlyTarget || 0;
 
     const handleEmployeeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedEmployeeId(e.target.value);

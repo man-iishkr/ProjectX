@@ -6,7 +6,7 @@ const crypto = require('crypto');
 // @access  Public (for initial setup) / Admin
 exports.register = async (req, res, next) => {
     try {
-        const { name, username, password, role, hq } = req.body;
+        const { name, username, password, role, hq, reportingTo } = req.body;
 
         // Create user
         const user = await User.create({
@@ -14,7 +14,8 @@ exports.register = async (req, res, next) => {
             username,
             password,
             role,
-            hq
+            hq,
+            reportingTo: reportingTo || null
         });
 
         sendTokenResponse(user, 200, res);
@@ -35,10 +36,9 @@ exports.login = async (req, res, next) => {
         }
 
         // Check for user
-        const user = await User.findOne({ username }).select('+password').populate('hq', 'name');
+        const user = await User.findOne({ username }).select('+password').populate('hq', 'name').populate('reportingTo', 'name designation role');
 
         if (!user) {
-
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
@@ -50,13 +50,24 @@ exports.login = async (req, res, next) => {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
-        // Verify Role if provided (Restricts Admin/HQ/Employee specific logins)
-        if (req.body.role && user.role !== req.body.role) {
-            console.log(`Login failed: Role mismatch. Expected ${req.body.role}, found ${user.role}`);
-            return res.status(403).json({
-                success: false,
-                error: `Access denied. This login is restricted to ${req.body.role}s only.`
-            });
+        // Verify Role if provided (admin login vs employee login)
+        if (req.body.role) {
+            // 'admin' tab is exclusively for admin
+            if (req.body.role === 'admin' && user.role !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Access denied. This login is for Admin only.'
+                });
+            }
+        } else {
+            // No role sent = employee login portal. Allow bde, sm, rsm, asm but NOT admin.
+            const employeeRoles = ['bde', 'sm', 'rsm', 'asm'];
+            if (!employeeRoles.includes(user.role)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Access denied. Use the Admin Login portal.'
+                });
+            }
         }
 
         sendTokenResponse(user, 200, res);
@@ -70,7 +81,7 @@ exports.login = async (req, res, next) => {
 // @access  Private
 exports.getMe = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user.id).populate('hq', 'name');
+        const user = await User.findById(req.user.id).populate('hq', 'name').populate('reportingTo', 'name designation role');
         res.status(200).json({
             success: true,
             data: user
@@ -86,8 +97,8 @@ const sendTokenResponse = (user, statusCode, res) => {
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Ensure it's false in dev
-        sameSite: 'lax' // Helps with navigation
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
     };
 
     res
@@ -100,7 +111,9 @@ const sendTokenResponse = (user, statusCode, res) => {
                 id: user._id,
                 name: user.name,
                 role: user.role,
-                hq: user.hq
+                designation: user.designation,
+                hq: user.hq,
+                reportingTo: user.reportingTo
             }
         });
 };

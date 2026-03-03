@@ -21,11 +21,11 @@ router.post('/', leaveController.createLeave);
 // Update leave request (only pending leaves)
 router.put('/:id', leaveController.updateLeave);
 
-// Approve leave (admin/hq only)
-router.patch('/:id/approve', authorize('admin', 'hq'), leaveController.approveLeave);
+// Approve leave (admin/sm/rsm/asm)
+router.patch('/:id/approve', authorize('admin', 'sm', 'rsm', 'asm'), leaveController.approveLeave);
 
-// Reject leave (admin/hq only)
-router.patch('/:id/reject', authorize('admin', 'hq'), leaveController.rejectLeave);
+// Reject leave (admin/sm/rsm/asm)
+router.patch('/:id/reject', authorize('admin', 'sm', 'rsm', 'asm'), leaveController.rejectLeave);
 
 // Cancel leave
 router.patch('/:id/cancel', leaveController.cancelLeave);

@@ -5,20 +5,15 @@ const { client, get, set, del } = require('../../config/redis');
 
 // @desc    Add new doctor
 // @route   POST /api/v1/doctors
-// @access  Private (Admin/HQ/Employee)
+// @access  Private (All authenticated users)
 exports.createDoctor = async (req, res, next) => {
     try {
-        // If Employee, check if they are allowed to add more? 
-        // PRD says "Add doctor (once only)". 
-        // This might mean "Add a SPECIFIC doctor once" to avoid duplicates, or "Add ONE doctor only"?
-        // Assuming "Add new doctor to system". Duplicates check by name+phone?
-
-        // Auto-assign HQ from user's HQ
+        // Auto-assign HQ from user's HQ (for data segmentation)
         if (req.user.role !== 'admin') {
             req.body.hq = req.user.hq;
         }
 
-        req.body.createdBy = req.user.id; // Assign creator
+        req.body.createdBy = req.user.id;
 
         // Parse lat/lng to GeoJSON
         if (req.body.latitude && req.body.longitude) {

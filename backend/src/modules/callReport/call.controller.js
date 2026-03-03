@@ -9,7 +9,7 @@ const dateFns = require('date-fns');
 // @access  Private (Employee)
 exports.createCallReport = async (req, res, next) => {
     try {
-        const { doctorId, latitude, longitude, remarks, digipin, products } = req.body;
+        const { doctorId, latitude, longitude, remarks, digipin, products, alongWith } = req.body;
 
         // Check if doctor exists
         const doctor = await Doctor.findById(doctorId);
@@ -49,6 +49,9 @@ exports.createCallReport = async (req, res, next) => {
         const threshold = 20; // meters. PRD says 20m.
         const isApproved = distance <= threshold;
 
+        // Filter out self from alongWith
+        const validAlongWith = (alongWith || []).filter((id) => id.toString() !== req.user.id.toString());
+
         const callReport = await CallReport.create({
             employee: req.user.id,
             doctor: doctorId,
@@ -58,7 +61,8 @@ exports.createCallReport = async (req, res, next) => {
             },
             digipin,
             remarks,
-            products, // Add products here
+            products,
+            alongWith: validAlongWith,
             isApproved,
             distanceFromDoctor: distance
         });
@@ -145,11 +149,12 @@ exports.createCallReport = async (req, res, next) => {
     }
 };
 
-// @desc    Get Call Reports (Admin/HQ Monitoring)
+// @desc    Get Call Reports (Admin/Manager Monitoring via designation hierarchy)
 // @route   GET /api/v1/call-reports
 // @access  Private
 exports.getCallReports = async (req, res, next) => {
     try {
+        const { getSubordinateIds } = require('../../middleware/auth.middleware');
         const { employeeId, startDate, endDate, hqId } = req.query;
 
         let query = {};
@@ -165,46 +170,39 @@ exports.getCallReports = async (req, res, next) => {
         // Role Based Filters
         if (req.user.role === 'admin') {
             if (employeeId) query.employee = employeeId;
-            // If filtering by HQ but not employee, we need to find employees in that HQ first
+            // HQ filter still supported for data segmentation
             if (hqId && !employeeId) {
                 const employees = await User.find({ hq: hqId }).select('_id');
                 query.employee = { $in: employees.map(e => e._id) };
             }
-        } else if (req.user.role === 'hq') {
-            // Can only see their HQ's employees
+        } else if (req.user.role === 'bde') {
+            // BDE sees own calls only
+            query.employee = req.user.id;
+        } else {
+            // SM/RSM/ASM: see their subordinates via the reportingTo hierarchy tree
+            const subordinateIds = await getSubordinateIds(req.user._id, false);
             if (employeeId) {
-                const emp = await User.findById(employeeId);
-                // Ensure employee belongs to this HQ
-                if (emp && emp.hq && emp.hq.toString() === req.user.hq.toString()) {
-                    query.employee = employeeId;
-                } else {
+                // Verify the requested employee is indeed a subordinate
+                if (!subordinateIds.includes(employeeId.toString())) {
                     return res.status(401).json({ success: false, error: 'Unauthorized to view this employee' });
                 }
+                query.employee = employeeId;
             } else {
-                const employees = await User.find({ hq: req.user.hq }).select('_id');
-                query.employee = { $in: employees.map(e => e._id) };
+                query.employee = { $in: subordinateIds };
             }
-        } else {
-            // Employee sees own
-            query.employee = req.user.id;
         }
 
         // Fetch Reports
         const reports = await CallReport.find(query)
             .populate('doctor', 'name address location distance routeFrom routeTo')
-            .populate('employee', 'name employeeId')
+            .populate('employee', 'name username designation')
             .populate('products', 'name')
+            .populate('alongWith', 'name designation')
             .sort({ createdAt: -1 });
 
-        // Calculate Stats (Frequency)
-        // Groups reports by Doctor and calculated cumulative frequency?
-        // Optimization: Aggregate counts for the month
-        // For each report, we want to know: "How many times has THIS employee visited THIS doctor in THIS month?"
-
         const reportsWithStats = await Promise.all(reports.map(async (doc) => {
-            const report = doc.toObject(); // Convert to plain JS object
+            const report = doc.toObject();
 
-            // Calculate visits count for this doctor by this employee in the report's month
             const reportDate = new Date(report.createdAt);
             const startOfMonth = new Date(reportDate.getFullYear(), reportDate.getMonth(), 1);
             const endOfMonth = new Date(reportDate.getFullYear(), reportDate.getMonth() + 1, 0, 23, 59, 59);
@@ -231,3 +229,5 @@ exports.getCallReports = async (req, res, next) => {
         next(err);
     }
 };
+
+

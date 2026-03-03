@@ -20,15 +20,23 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'hq', 'employee'],
-        default: 'employee'
+        // admin = Super Admin, sm = Sales Manager, rsm = Regional Sales Manager
+        // asm = Area Sales Manager, bde = Business Development Executive
+        enum: ['admin', 'sm', 'rsm', 'asm', 'bde'],
+        default: 'bde'
     },
+    // Reporting Manager (direct manager in the hierarchy)
+    reportingTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    // HQ is kept for data segmentation (doctors/chemists per HQ), not for access control
     hq: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'HQ',
-        required: function () { return this.role === 'employee'; } // HQ is mandatory for employees
+        ref: 'HQ'
     },
-    designation: String,
+    designation: String, // Human-readable: BDE, ASM, RSM, SM
     joiningDate: Date,
     resignationDate: Date,
     aadharCard: String,

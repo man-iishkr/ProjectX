@@ -16,20 +16,20 @@ const EmployeeLogin: React.FC = () => {
     const navigate = useNavigate();
 
     // Animation state
-    const [animatingOut, setAnimatingOut] = useState<'left' | 'right' | ''>('');
+    const [animatingOut, setAnimatingOut] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
         try {
-            await login({ username, password, role: 'employee' });
+            await login({ username, password });
 
-            // Set animation to slide out to the left and down
-            setAnimatingOut('left');
+            // Set animation to slide upward
+            setAnimatingOut(true);
 
             setTimeout(() => {
-                navigate('/employee/dashboard');
+                navigate('/');
             }, 550);
 
         } catch (err: any) {
@@ -38,33 +38,31 @@ const EmployeeLogin: React.FC = () => {
         }
     };
 
-    const handleBackClick = () => {
-        // Set animation to slide out to the right
-        setAnimatingOut('right');
+    const handleAdminClick = () => {
+        // Set animation to slide upward
+        setAnimatingOut(true);
 
         setTimeout(() => {
-            navigate('/login');
+            navigate('/admin-login');
         }, 550);
     };
 
-    // Determine the animation class to apply for the modal
-    let animationClass = '';
-    if (animatingOut === 'left') animationClass = 'slide-out-left';
-    if (animatingOut === 'right') animationClass = 'slide-out-right';
+    // Determine the animation class
+    const animationClass = animatingOut ? 'slide-out-up' : 'slide-in-up';
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col justify-center sm:py-12 overflow-hidden relative">
             <PharmacyScene />
 
-            <div className={`p-4 sm:p-0 mx-auto md:w-full md:max-w-md z-50 ${animationClass}`}>
+            <div className={`p-4 sm:p-0 mx-auto md:w-full md:max-w-md z-50 ${animationClass}`} style={{ willChange: 'transform, opacity' }}>
 
                 {/* Brand Header */}
                 <div className="mb-8 text-center">
                     <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-white/10 backdrop-blur rounded-2xl p-2 border border-white/10 shadow-xl">
                         <img src="/AppLogo.png" alt="SwaSarwam" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="font-bold text-3xl text-white mb-2 tracking-wide">SwaSarwam</h1>
-                    <p className="text-blue-200/80 font-light">Employee Portal</p>
+                    <h1 className="font-bold text-3xl mb-2 tracking-wide bg-gradient-to-r from-blue-400 via-violet-400 to-orange-400 bg-clip-text text-transparent">SwaSarwam</h1>
+                    <p className="text-blue-200/80 font-light">Employee Login</p>
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-md dark:bg-card/95 shadow-2xl shadow-blue-900/20 w-full rounded-2xl divide-y divide-slate-100 dark:divide-border overflow-hidden border border-white/20 dark:border-white/10">
@@ -79,14 +77,14 @@ const EmployeeLogin: React.FC = () => {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-foreground mb-1.5 block">Employee ID</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-foreground mb-1.5 block">Username / Employee ID</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <User className="h-5 w-5 text-slate-400 dark:text-muted-foreground" />
                                         </div>
                                         <Input
                                             type="text"
-                                            placeholder="EMP-12345"
+                                            placeholder="Enter your ID"
                                             value={username}
                                             onChange={(e) => setUsername(e.target.value)}
                                             className="pl-10 h-12 bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-border focus:bg-white dark:focus:bg-muted/50 transition-colors dark:text-foreground"
@@ -145,13 +143,13 @@ const EmployeeLogin: React.FC = () => {
                     </div>
 
                     <div className="px-8 py-6 bg-slate-50 dark:bg-muted/30 text-center">
-                        <p className="text-sm text-slate-500 mb-4">Admin or HQ User?</p>
+                        <p className="text-sm text-slate-500 mb-4">Admin / Management?</p>
                         <button
                             type="button"
-                            onClick={handleBackClick}
+                            onClick={handleAdminClick}
                             className="inline-flex items-center justify-center text-sm font-medium text-slate-700 dark:text-foreground hover:text-blue-600 transition-colors"
                         >
-                            Log in to Admin Portal
+                            Login as Admin →
                         </button>
                     </div>
                 </div>

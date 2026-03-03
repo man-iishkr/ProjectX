@@ -13,6 +13,6 @@ router.use(protect);
 router
     .route('/')
     .get(getCallReports)
-    .post(authorize('employee'), createCallReport);
+    .post(authorize('bde'), createCallReport);
 
 module.exports = router;

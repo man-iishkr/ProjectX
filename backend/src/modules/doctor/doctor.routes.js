@@ -22,13 +22,13 @@ router
 
 router
     .route('/batch-approve')
-    .put(authorize('admin', 'hq'), exports.batchApproveDoctors || require('./doctor.controller').batchApproveDoctors);
+    .put(authorize('admin', 'sm', 'rsm', 'asm'), exports.batchApproveDoctors || require('./doctor.controller').batchApproveDoctors);
 
 router
     .route('/:id')
     .get(getDoctor)
-    .put(authorize('admin', 'hq'), updateDoctor)
-    .delete(authorize('admin', 'hq'), deleteDoctor);
+    .put(authorize('admin', 'sm', 'rsm', 'asm'), updateDoctor)
+    .delete(authorize('admin', 'sm', 'rsm', 'asm'), deleteDoctor);
 
 router
     .route('/:id/location')

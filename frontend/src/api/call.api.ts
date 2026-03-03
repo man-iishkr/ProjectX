@@ -7,6 +7,7 @@ export interface CallReportData {
     remarks?: string;
     digipin?: string;
     products?: string[];
+    alongWith?: string[];
 }
 
 export const createCallReport = async (data: CallReportData) => {

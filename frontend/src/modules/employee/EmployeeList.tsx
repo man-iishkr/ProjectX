@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Table from '../../components/Table';
-import { getEmployees, deleteEmployee, createEmployee, updateEmployee } from '../../api/employee.api';
+import { deleteEmployee, createEmployee, updateEmployee } from '../../api/employee.api';
 import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -8,11 +8,29 @@ import { Pencil, Trash2, Plus, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/ui/Modal';
 import axios from 'axios';
+import api from '../../api/axios';
+
+const ROLE_OPTIONS = [
+    { value: 'bde', label: 'BDE (Business Development Executive)' },
+    { value: 'asm', label: 'ASM (Area Sales Manager)' },
+    { value: 'rsm', label: 'RSM (Regional Sales Manager)' },
+    { value: 'sm', label: 'SM (Sales Manager)' },
+    { value: 'admin', label: 'Admin' },
+];
+
+const DESIGNATION_MAP: Record<string, string> = {
+    bde: 'BDE',
+    asm: 'ASM',
+    rsm: 'RSM',
+    sm: 'SM',
+    admin: 'Admin',
+};
 
 const EmployeeList: React.FC = () => {
     const { user } = useAuth();
     const [employees, setEmployees] = useState<any[]>([]);
     const [hqs, setHQs] = useState<any[]>([]);
+    const [managers, setManagers] = useState<any[]>([]);
     const [selectedHQ, setSelectedHQ] = useState('');
     const [employeeStatus, setEmployeeStatus] = useState<'active' | 'past'>('active');
     const [loading, setLoading] = useState(true);
@@ -20,13 +38,14 @@ const EmployeeList: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState({
+    const emptyForm = {
         name: '',
         username: '',
         password: '',
-        role: 'employee',
+        role: 'bde',
         hq: '',
-        designation: '',
+        reportingTo: '',
+        designation: 'BDE',
         state: '',
         division: '',
         staffType: '',
@@ -40,30 +59,34 @@ const EmployeeList: React.FC = () => {
         address: '',
         pincode: '',
         city: ''
-    });
+    };
+
+    const [formData, setFormData] = useState(emptyForm);
 
     useEffect(() => {
         loadData();
     }, [selectedHQ, employeeStatus]);
 
+    // Refresh reporting managers when role changes
+    useEffect(() => {
+        if (formData.role) {
+            loadManagers(formData.role);
+        }
+    }, [formData.role]);
+
     const loadData = async () => {
         try {
             setLoading(true);
-            const empPromise = getEmployees(selectedHQ, employeeStatus);
+            const params: any = { status: employeeStatus };
+            if (selectedHQ) params.hq = selectedHQ;
 
-            const promises: Promise<any>[] = [empPromise];
-            if (hqs.length === 0) {
-                promises.push(getHQs());
-            }
+            const [empRes, hqRes] = await Promise.all([
+                api.get('/employees', { params }),
+                hqs.length === 0 ? getHQs() : Promise.resolve(null)
+            ]);
 
-            const [empRes, hqRes] = await Promise.all(promises);
-
-            if (empRes.success) {
-                setEmployees(empRes.data);
-            }
-            if (hqRes && hqRes.success) {
-                setHQs(hqRes.data);
-            }
+            if (empRes.data?.success) setEmployees(empRes.data.data);
+            if (hqRes?.success) setHQs(hqRes.data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -71,9 +94,25 @@ const EmployeeList: React.FC = () => {
         }
     };
 
+    const loadManagers = async (forRole: string) => {
+        try {
+            const res = await api.get('/employees/managers', { params: { forRole } });
+            if (res.data?.success) {
+                setManagers(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to load managers', err);
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            // Keep designation in sync with role
+            ...(name === 'role' ? { designation: DESIGNATION_MAP[value] || value.toUpperCase() } : {})
+        }));
 
         if (name === 'pincode' && value.length === 6) {
             fetchPincodeDetails(value);
@@ -97,28 +136,9 @@ const EmployeeList: React.FC = () => {
     };
 
     const openCreateModal = () => {
-        setFormData({
-            name: '',
-            username: '',
-            password: '',
-            role: 'employee',
-            hq: user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '',
-            designation: '',
-            state: '',
-            division: '',
-            staffType: '',
-            monthlyPay: '',
-            distanceTravelled: 0,
-            joiningDate: '',
-            resignationDate: '',
-            aadharCard: '',
-            panCard: '',
-            mobile: '',
-            address: '',
-            pincode: '',
-            city: ''
-        });
+        setFormData(emptyForm);
         setIsEditing(false);
+        loadManagers('bde');
         setIsModalOpen(true);
     };
 
@@ -127,9 +147,10 @@ const EmployeeList: React.FC = () => {
             name: employee.name,
             username: employee.username,
             password: '',
-            role: employee.role,
+            role: employee.role || 'bde',
             hq: employee.hq?._id || '',
-            designation: employee.designation || '',
+            reportingTo: employee.reportingTo?._id || '',
+            designation: employee.designation || DESIGNATION_MAP[employee.role] || '',
             state: employee.state || '',
             division: employee.division || '',
             staffType: employee.staffType || '',
@@ -146,6 +167,7 @@ const EmployeeList: React.FC = () => {
         });
         setCurrentId(employee._id);
         setIsEditing(true);
+        loadManagers(employee.role || 'bde');
         setIsModalOpen(true);
     };
 
@@ -168,9 +190,10 @@ const EmployeeList: React.FC = () => {
 
         try {
             const dataToSend: any = { ...formData };
+            if (!dataToSend.reportingTo) delete dataToSend.reportingTo;
+
             if (isEditing && currentId) {
                 if (!dataToSend.password) delete dataToSend.password;
-
                 await updateEmployee(currentId, dataToSend);
             } else {
                 await createEmployee(formData);
@@ -196,10 +219,11 @@ const EmployeeList: React.FC = () => {
         { header: 'Mobile', accessor: 'mobile' },
         { header: 'HQ', accessor: (row: any) => row.hq?.name || 'N/A' },
         { header: 'Designation', accessor: 'designation' },
+        { header: 'Role', accessor: 'role' },
+        { header: 'Reporting To', accessor: (row: any) => row.reportingTo ? `${row.reportingTo.name} (${row.reportingTo.designation})` : '-' },
         { header: 'State', accessor: 'state' },
         { header: 'Join Date', accessor: (row: any) => row.joiningDate ? new Date(row.joiningDate).toLocaleDateString() : '-' },
         ...(employeeStatus === 'past' ? [{ header: 'Resignation', accessor: (row: any) => row.resignationDate ? new Date(row.resignationDate).toLocaleDateString() : '-' }] : []),
-        { header: 'Role', accessor: 'role' },
     ];
 
     if (loading) return <div>Loading...</div>;
@@ -277,7 +301,7 @@ const EmployeeList: React.FC = () => {
                     <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2">Basic Info</div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Emp ID / Username</label>
+                        <label className="text-sm font-medium mb-1 block">Emp ID / Username *</label>
                         <Input
                             name="username"
                             value={formData.username}
@@ -288,7 +312,7 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Name</label>
+                        <label className="text-sm font-medium mb-1 block">Name *</label>
                         <Input
                             name="name"
                             value={formData.name}
@@ -299,22 +323,23 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Role</label>
+                        <label className="text-sm font-medium mb-1 block">Role *</label>
                         <select
                             name="role"
                             value={formData.role}
                             onChange={handleInputChange}
+                            required
                             className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
                         >
-                            <option value="employee">Employee</option>
-                            <option value="hq">HQ Manager</option>
-                            <option value="admin">Admin</option>
+                            {ROLE_OPTIONS.map(r => (
+                                <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
                         </select>
                     </div>
 
                     {!isEditing && (
                         <div>
-                            <label className="text-sm font-medium mb-1 block">Password</label>
+                            <label className="text-sm font-medium mb-1 block">Password *</label>
                             <Input
                                 name="password"
                                 type="password"
@@ -331,7 +356,7 @@ const EmployeeList: React.FC = () => {
                     <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4">Official Details</div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Joining Date</label>
+                        <label className="text-sm font-medium mb-1 block">Joining Date *</label>
                         <Input
                             name="joiningDate"
                             type="date"
@@ -343,45 +368,44 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Designation</label>
+                        <label className="text-sm font-medium mb-1 block">Reporting To *</label>
                         <select
-                            name="designation"
-                            value={formData.designation}
+                            name="reportingTo"
+                            value={formData.reportingTo}
                             onChange={handleInputChange}
-                            required
+                            required={formData.role !== 'admin' && formData.role !== 'sm'}
                             className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
                         >
-                            <option value="">Select Designation</option>
-                            <option value="BDE">BDE</option>
-                            <option value="ASM">ASM</option>
-                            <option value="RSM">RSM</option>
-                            <option value="SM">SM</option>
+                            <option value="">None (Reports to Admin)</option>
+                            {managers.map((m: any) => (
+                                <option key={m._id} value={m._id}>
+                                    {m.name} ({m.designation || m.role?.toUpperCase()})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-1">Only higher-designation employees shown</p>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Reporting HQ *</label>
+                        <select
+                            name="hq"
+                            value={formData.hq}
+                            onChange={handleInputChange}
+                            className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+                            required
+                        >
+                            <option value="">Select HQ</option>
+                            {hqs.map((hq) => (
+                                <option key={hq._id} value={hq._id}>
+                                    {hq.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
-                    {formData.role === 'employee' && (
-                        <div>
-                            <label className="text-sm font-medium mb-1 block">Reporting HQ</label>
-                            <select
-                                name="hq"
-                                value={formData.hq || (user?.role === 'hq' ? (typeof user.hq === 'string' ? user.hq : user.hq?._id) : '')}
-                                onChange={handleInputChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-                                required={formData.role === 'employee'}
-                                disabled={user?.role === 'hq'}
-                            >
-                                <option value="">Select HQ</option>
-                                {hqs.map((hq) => (
-                                    <option key={hq._id} value={hq._id}>
-                                        {hq.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Monthly Pay</label>
+                        <label className="text-sm font-medium mb-1 block">Monthly Pay *</label>
                         <Input
                             name="monthlyPay"
                             type="number"
@@ -408,7 +432,7 @@ const EmployeeList: React.FC = () => {
                     <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4">Personal & Address</div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Mobile No.</label>
+                        <label className="text-sm font-medium mb-1 block">Mobile No. *</label>
                         <Input
                             name="mobile"
                             value={formData.mobile}
@@ -421,7 +445,7 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Aadhar Card</label>
+                        <label className="text-sm font-medium mb-1 block">Aadhar Card *</label>
                         <Input
                             name="aadharCard"
                             value={formData.aadharCard}
@@ -434,7 +458,7 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">PAN Card</label>
+                        <label className="text-sm font-medium mb-1 block">PAN Card *</label>
                         <Input
                             name="panCard"
                             value={formData.panCard}
@@ -447,7 +471,7 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div className="md:col-span-2">
-                        <label className="text-sm font-medium mb-1 block">Address</label>
+                        <label className="text-sm font-medium mb-1 block">Address *</label>
                         <Input
                             name="address"
                             value={formData.address}
@@ -458,7 +482,7 @@ const EmployeeList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Pincode</label>
+                        <label className="text-sm font-medium mb-1 block">Pincode *</label>
                         <div className="relative">
                             <Input
                                 name="pincode"

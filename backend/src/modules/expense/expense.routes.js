@@ -15,10 +15,10 @@ router.use(protect);
 router
     .route('/')
     .get(getExpenses)
-    .post(authorize('employee'), upload.single('image'), createExpense);
+    .post(authorize('bde', 'asm', 'rsm', 'sm'), upload.single('image'), createExpense);
 
 router
     .route('/:id')
-    .put(authorize('admin', 'hq'), updateExpenseStatus);
+    .put(authorize('admin', 'sm', 'rsm', 'asm'), updateExpenseStatus);
 
 module.exports = router;

@@ -82,6 +82,12 @@ const CallReportList: React.FC = () => {
             }
         },
         {
+            header: 'Along With', accessor: (row: any) => {
+                if (!row.alongWith || row.alongWith.length === 0) return '-';
+                return row.alongWith.map((e: any) => e.name || e).join(', ');
+            }
+        },
+        {
             header: 'Route Distance', accessor: (row: any) => {
                 const dist = row.doctor?.distance;
                 if (dist == null || dist === 0) return '0 km (Local)';
@@ -96,7 +102,7 @@ const CallReportList: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Call Report Monitoring</h1>
-                {user?.role === 'employee' && (
+                {user?.role !== 'admin' && (
                     <Button onClick={() => setShowReportModal(true)} className="bg-blue-600 hover:bg-blue-700">
                         <PhoneCall className="h-4 w-4 mr-2" />
                         New Call Report
