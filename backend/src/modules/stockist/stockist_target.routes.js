@@ -61,20 +61,6 @@ router.post('/targets/bulk', authorize('admin', 'hq'), async (req, res, next) =>
     } catch (err) { next(err); }
 });
 
-router.delete('/targets/:id', authorize('admin', 'hq'), async (req, res, next) => {
-    try {
-        const target = await Target.findById(req.params.id);
-        if (!target) return res.status(404).json({ success: false, error: 'Target not found' });
-
-        if (req.user.role === 'hq' && target.hq.toString() !== req.user.hq.toString()) {
-            return res.status(403).json({ success: false, error: 'Not authorized' });
-        }
-
-        await target.deleteOne();
-        res.status(200).json({ success: true, data: {} });
-    } catch (err) { next(err); }
-});
-
 router.delete('/targets/annual', authorize('admin', 'hq'), async (req, res, next) => {
     try {
         const { hq, year } = req.query;
@@ -89,13 +75,27 @@ router.delete('/targets/annual', authorize('admin', 'hq'), async (req, res, next
     } catch (err) { next(err); }
 });
 
-// WEEKLY ACHIEVEMENT CRUD
-const {
-    submitWeeklyAchievement,
-    getMonthlyProgress
-} = require('../target/weeklyAchievement.controller');
+router.delete('/targets/:id', authorize('admin', 'hq'), async (req, res, next) => {
+    try {
+        const target = await Target.findById(req.params.id);
+        if (!target) return res.status(404).json({ success: false, error: 'Target not found' });
 
-router.post('/targets/weekly-achievements', authorize('employee'), submitWeeklyAchievement);
-router.get('/targets/progress', authorize('admin', 'hq', 'employee'), getMonthlyProgress);
+        if (req.user.role === 'hq' && target.hq.toString() !== req.user.hq.toString()) {
+            return res.status(403).json({ success: false, error: 'Not authorized' });
+        }
+
+        await target.deleteOne();
+        res.status(200).json({ success: true, data: {} });
+    } catch (err) { next(err); }
+});
+
+// MONTHLY ACHIEVEMENT CRUD
+const {
+    submitMonthlyAchievement,
+    getFinancialYearProgress
+} = require('../target/monthlyAchievement.controller');
+
+router.post('/targets/monthly-achievements', authorize('employee'), submitMonthlyAchievement);
+router.get('/targets/progress', authorize('admin', 'hq', 'employee'), getFinancialYearProgress);
 
 module.exports = router;

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { User, Lock, ArrowRight, Linkedin } from 'lucide-react';
+import { PharmacyScene } from '../components/3d/PharmacyScene';
 
 const EmployeeLogin: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -14,34 +15,59 @@ const EmployeeLogin: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
 
+    // Animation state
+    const [animatingOut, setAnimatingOut] = useState<'left' | 'right' | ''>('');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
         try {
             await login({ username, password, role: 'employee' });
-            navigate('/employee/dashboard');
+
+            // Set animation to slide out to the left and down
+            setAnimatingOut('left');
+
+            setTimeout(() => {
+                navigate('/employee/dashboard');
+            }, 550);
+
         } catch (err: any) {
             setError(err.response?.data?.error || 'Login failed. Please check your ID and password.');
-        } finally {
             setIsLoading(false);
         }
     };
 
+    const handleBackClick = () => {
+        // Set animation to slide out to the right
+        setAnimatingOut('right');
+
+        setTimeout(() => {
+            navigate('/login');
+        }, 550);
+    };
+
+    // Determine the animation class to apply for the modal
+    let animationClass = '';
+    if (animatingOut === 'left') animationClass = 'slide-out-left';
+    if (animatingOut === 'right') animationClass = 'slide-out-right';
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-background flex flex-col justify-center sm:py-12">
-            <div className="p-4 sm:p-0 mx-auto md:w-full md:max-w-md">
+        <div className="min-h-screen bg-slate-950 flex flex-col justify-center sm:py-12 overflow-hidden relative">
+            <PharmacyScene />
+
+            <div className={`p-4 sm:p-0 mx-auto md:w-full md:max-w-md z-50 ${animationClass}`}>
 
                 {/* Brand Header */}
                 <div className="mb-8 text-center">
-                    <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+                    <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-white/10 backdrop-blur rounded-2xl p-2 border border-white/10 shadow-xl">
                         <img src="/AppLogo.png" alt="SwaSarwam" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="font-bold text-3xl text-slate-800 dark:text-foreground mb-2">SwaSarwam</h1>
-                    <p className="text-slate-500 dark:text-muted-foreground">Employee Portal</p>
+                    <h1 className="font-bold text-3xl text-white mb-2 tracking-wide">SwaSarwam</h1>
+                    <p className="text-blue-200/80 font-light">Employee Portal</p>
                 </div>
 
-                <div className="bg-white dark:bg-card shadow-xl w-full rounded-2xl divide-y divide-slate-100 dark:divide-border overflow-hidden border border-slate-100 dark:border-border">
+                <div className="bg-white/95 backdrop-blur-md dark:bg-card/95 shadow-2xl shadow-blue-900/20 w-full rounded-2xl divide-y divide-slate-100 dark:divide-border overflow-hidden border border-white/20 dark:border-white/10">
                     <div className="px-8 py-8">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {error && (
@@ -120,12 +146,13 @@ const EmployeeLogin: React.FC = () => {
 
                     <div className="px-8 py-6 bg-slate-50 dark:bg-muted/30 text-center">
                         <p className="text-sm text-slate-500 mb-4">Admin or HQ User?</p>
-                        <Link
-                            to="/login"
+                        <button
+                            type="button"
+                            onClick={handleBackClick}
                             className="inline-flex items-center justify-center text-sm font-medium text-slate-700 dark:text-foreground hover:text-blue-600 transition-colors"
                         >
                             Log in to Admin Portal
-                        </Link>
+                        </button>
                     </div>
                 </div>
 

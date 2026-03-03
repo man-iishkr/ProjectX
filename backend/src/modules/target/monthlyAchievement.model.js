@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const WeeklyAchievementSchema = new mongoose.Schema({
+const MonthlyAchievementSchema = new mongoose.Schema({
     employee: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -19,10 +19,6 @@ const WeeklyAchievementSchema = new mongoose.Schema({
         type: Number, // 1-12
         required: true
     },
-    week: {
-        type: Number, // 1-5
-        required: true
-    },
     salesAchieved: {
         type: Number,
         required: true,
@@ -34,7 +30,7 @@ const WeeklyAchievementSchema = new mongoose.Schema({
     }
 });
 
-// Composite unique index to ensure an employee only submits once per week per month/year
-WeeklyAchievementSchema.index({ employee: 1, year: 1, month: 1, week: 1 }, { unique: true });
+// Composite unique index to ensure an employee only submits once per month per year
+MonthlyAchievementSchema.index({ employee: 1, year: 1, month: 1 }, { unique: true });
 
-module.exports = mongoose.model('WeeklyAchievement', WeeklyAchievementSchema);
+module.exports = mongoose.model('MonthlyAchievement', MonthlyAchievementSchema);
