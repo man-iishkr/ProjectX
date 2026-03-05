@@ -4,11 +4,12 @@ import { deleteEmployee, createEmployee, updateEmployee } from '../../api/employ
 import { getHQs } from '../../api/hq.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Pencil, Trash2, Plus, Search } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/ui/Modal';
 import axios from 'axios';
 import api from '../../api/axios';
+import RecordDetailModal from '../../components/ui/RecordDetailModal';
 
 const ROLE_OPTIONS = [
     { value: 'bde', label: 'BDE (Business Development Executive)' },
@@ -37,6 +38,7 @@ const EmployeeList: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState<string | null>(null);
+    const [viewingEmployee, setViewingEmployee] = useState<any>(null);
 
     const emptyForm = {
         name: '',
@@ -278,6 +280,11 @@ const EmployeeList: React.FC = () => {
                 columns={columns}
                 actions={(row) => (
                     <div className="flex gap-2">
+                        {user?.role === 'admin' && (
+                            <Button variant="ghost" size="icon" onClick={() => setViewingEmployee(row)} title="View Details">
+                                <Eye className="h-4 w-4 text-slate-400 hover:text-blue-600" />
+                            </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
                             <Pencil className="h-4 w-4 text-blue-600" />
                         </Button>
@@ -318,6 +325,21 @@ const EmployeeList: React.FC = () => {
                             value={formData.name}
                             onChange={handleInputChange}
                             required
+                            className="bg-background"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">
+                            Password {isEditing ? <span className="text-muted-foreground font-normal text-xs">(leave blank to keep current)</span> : '*'}
+                        </label>
+                        <Input
+                            name="password"
+                            type="password"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            required={!isEditing}
+                            placeholder={isEditing ? 'Leave blank to keep current' : 'Min 6 characters'}
                             className="bg-background"
                         />
                     </div>
@@ -536,6 +558,13 @@ const EmployeeList: React.FC = () => {
                     </div>
                 </form>
             </Modal>
+            {viewingEmployee && (
+                <RecordDetailModal
+                    record={viewingEmployee}
+                    title={`Employee: ${viewingEmployee.name || ''}`}
+                    onClose={() => setViewingEmployee(null)}
+                />
+            )}
         </div>
     );
 };

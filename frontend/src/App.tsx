@@ -96,6 +96,7 @@ const App: React.FC = () => {
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="profile" element={<EmployeeProfile />} />
         <Route path="employees" element={<EmployeeList />} />
         <Route path="doctors" element={<DoctorList />} />
         <Route path="chemists" element={<ChemistList />} />
@@ -107,6 +108,7 @@ const App: React.FC = () => {
         <Route path="calls" element={<CallReportList />} />
         <Route path="leave" element={<LeaveCalendar />} />
         <Route path="salary" element={<SalaryList />} />
+        <Route path="import" element={<DataImport />} />
       </Route>
 
       {/* EMPLOYEE ROUTES (BDE) */}
@@ -123,6 +125,7 @@ const App: React.FC = () => {
         <Route path="doctors" element={<DoctorList />} />
         <Route path="expenses" element={<MyExpenses />} />
         <Route path="leave" element={<LeaveCalendar />} />
+        <Route path="import" element={<DataImport />} />
         <Route path="*" element={<Dashboard />} /> {/* Fallback */}
       </Route>
 

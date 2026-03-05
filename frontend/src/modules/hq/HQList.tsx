@@ -5,7 +5,6 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import MapmyIndiaSearch from '../../components/MapmyIndiaSearch';
 import Modal from '../../components/ui/Modal';
 
 const HQList: React.FC = () => {
@@ -16,9 +15,7 @@ const HQList: React.FC = () => {
     const [formData, setFormData] = useState<any>({
         name: '',
         location: '',
-        coordinates: null,
         state: '',
-        password: '',
         employeeStrength: '',
         managerStrength: '',
         transitDays: '',
@@ -67,9 +64,7 @@ const HQList: React.FC = () => {
             const submitData = {
                 name: formData.name,
                 location: formData.location,
-                coordinates: formData.coordinates,
                 state: formData.state,
-                password: formData.password,
                 ...(formData.employeeStrength && { employeeStrength: Number(formData.employeeStrength) }),
                 ...(formData.managerStrength && { managerStrength: Number(formData.managerStrength) }),
                 ...(formData.transitDays && { transitDays: Number(formData.transitDays) }),
@@ -85,9 +80,7 @@ const HQList: React.FC = () => {
                 setFormData({
                     name: '',
                     location: '',
-                    coordinates: null,
                     state: '',
-                    password: '',
                     employeeStrength: '',
                     managerStrength: '',
                     transitDays: '',
@@ -154,47 +147,31 @@ const HQList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Location</label>
-                        <div className="relative">
-                            <MapmyIndiaSearch
-                                value={formData.location}
-                                onSelect={(address: string, lat?: number, lng?: number) => {
-                                    setFormData((prev: any) => ({
-                                        ...prev,
-                                        location: address,
-                                        coordinates: (lat && lng) ? {
-                                            type: 'Point',
-                                            coordinates: [lng, lat]
-                                        } : null
-                                    }));
-                                }}
-                                placeholder="Search HQ Address..."
-                                className="w-full"
-                            />
-                        </div>
+                        <label className="text-sm font-medium mb-1 block">Location <span className="text-muted-foreground text-xs">(optional)</span></label>
+                        <Input
+                            name="location"
+                            value={formData.location}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Mumbai, Maharashtra"
+                        />
                     </div>
 
                     <div>
                         <label className="text-sm font-medium mb-1 block">State</label>
-                        <Input
+                        <select
                             name="state"
                             value={formData.state}
-                            onChange={handleInputChange}
-                            required
-                        />
+                            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                            <option value="">Select State</option>
+                            {['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
                     </div>
 
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Password (for HQ Login)</label>
-                        <Input
-                            name="password"
-                            type="password"
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            required
-                            placeholder="Set login password"
-                        />
-                    </div>
+
 
                     <div>
                         <label className="text-sm font-medium mb-1 block">Employee Strength</label>

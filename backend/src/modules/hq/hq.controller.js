@@ -24,33 +24,12 @@ exports.getHQs = async (req, res, next) => {
 exports.createHQ = async (req, res, next) => {
     try {
         console.log('Creating HQ with data:', req.body);
+        // Strip out 'password' field — HQ login was removed, HQs are data records only
         const { password, ...hqData } = req.body;
-
-        if (!password) {
-            return res.status(400).json({
-                success: false,
-                error: 'Please provide a password for the HQ login'
-            });
-        }
 
         const hq = await HQ.create(hqData);
 
-        // Create associated User for this HQ
-        try {
-            await User.create({
-                name: hq.name,
-                username: hq.name, // Username is same as HQ name
-                password: password,
-                role: 'hq',
-                hq: hq._id
-            });
-        } catch (userError) {
-            // Rollback: Delete the created HQ if user creation fails
-            await HQ.findByIdAndDelete(hq._id);
-            throw userError;
-        }
-
-        console.log('HQ and User created successfully:', hq._id);
+        console.log('HQ created successfully:', hq._id);
 
         res.status(201).json({
             success: true,

@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { importData } = require('./import.controller');
+const { importData, previewHeaders } = require('./import.controller');
 const { protect, authorize } = require('../../middleware/auth.middleware');
 
 const router = express.Router();
@@ -10,8 +10,8 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 router.use(protect);
-router.use(authorize('admin')); // Restrict all import tools to Admin
 
-router.post('/import', upload.single('file'), importData);
+router.post('/preview-headers', authorize('admin', 'sm', 'rsm', 'asm', 'bde'), upload.single('file'), previewHeaders);
+router.post('/import', authorize('admin', 'sm', 'rsm', 'asm', 'bde'), upload.single('file'), importData);
 
 module.exports = router;

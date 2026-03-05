@@ -4,45 +4,66 @@ const axios = require('axios');
 let cachedToken = null;
 let tokenExpiry = null;
 
-// Helper to get Valid Token
-const getAccessToken = async () => {
+let currentKeyIndex = 1;
+
+const getAccessToken = async (forceSwitch = false) => {
+    if (forceSwitch) {
+        currentKeyIndex = currentKeyIndex === 1 ? 2 : 1;
+        cachedToken = null;
+        tokenExpiry = null;
+    }
+
     // Check cache
     if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
-
         return cachedToken;
     }
 
-    const clientId = process.env.MAPPLS_CLIENT_ID;
-    const clientSecret = process.env.MAPPLS_CLIENT_SECRET;
+    const keys = [
+        { id: process.env.MAPPLS_CLIENT_ID, secret: process.env.MAPPLS_CLIENT_SECRET },
+        { id: process.env.MAPPLS_CLIENT_ID_2, secret: process.env.MAPPLS_CLIENT_SECRET_2 }
+    ];
 
-    if (!clientId || !clientSecret) {
-        throw new Error('MapmyIndia Credentials (CLIENT_ID/SECRET) not configured');
+    let lastError = null;
+
+    // Try up to 2 times (once per key)
+    for (let attempts = 0; attempts < 2; attempts++) {
+        const key = keys[currentKeyIndex - 1];
+
+        if (!key.id || !key.secret) {
+            console.warn(`MapmyIndia Key ${currentKeyIndex} is missing in ENV.`);
+            currentKeyIndex = currentKeyIndex === 1 ? 2 : 1;
+            continue;
+        }
+
+        const tokenUrl = 'https://outpost.mapmyindia.com/api/security/oauth/token';
+
+        try {
+            const response = await axios.post(tokenUrl,
+                new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: key.id,
+                    client_secret: key.secret
+                }),
+                {
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                }
+            );
+
+            const { access_token, expires_in } = response.data;
+            cachedToken = access_token;
+            // Expire 5 mins early just to be safe
+            tokenExpiry = Date.now() + (expires_in * 1000) - (5 * 60 * 1000);
+
+            return cachedToken;
+        } catch (error) {
+            lastError = error;
+            console.error(`✗ Mappls Token Gen Error (Key ${currentKeyIndex}):`, error.response?.status, error.response?.data || error.message);
+            // Switch key for the next attempt
+            currentKeyIndex = currentKeyIndex === 1 ? 2 : 1;
+        }
     }
 
-    const tokenUrl = 'https://outpost.mapmyindia.com/api/security/oauth/token';
-
-    try {
-        const response = await axios.post(tokenUrl,
-            new URLSearchParams({
-                grant_type: 'client_credentials',
-                client_id: clientId,
-                client_secret: clientSecret
-            }),
-            {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            }
-        );
-
-        const { access_token, expires_in } = response.data;
-        cachedToken = access_token;
-        // Expire 5 mins early just to be safe
-        tokenExpiry = Date.now() + (expires_in * 1000) - (5 * 60 * 1000);
-
-        return cachedToken;
-    } catch (error) {
-        console.error('✗ Mappls Token Gen Error:', error.response?.status, error.response?.data || error.message);
-        throw error;
-    }
+    throw new Error('All MapmyIndia API keys failed. Last error: ' + (lastError?.message || 'No valid keys configured'));
 };
 
 // @desc    Get MapmyIndia Access Token (For Frontend SDKs)
@@ -54,6 +75,28 @@ exports.getToken = async (req, res, next) => {
         res.status(200).json({ success: true, access_token: token });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Failed to generate token' });
+    }
+};
+
+// Wrapper for MapmyIndia API calls with automatic key failover
+const makeMapplsRequestWithFailover = async (urlConfig) => {
+    let token = await getAccessToken();
+    try {
+        return await axios({
+            ...urlConfig,
+            headers: { ...urlConfig.headers, 'Authorization': `Bearer ${token}` }
+        });
+    } catch (err) {
+        // If forbidden or rate limited, try switching to the secondary API key
+        if (err.response && (err.response.status === 403 || err.response.status === 429)) {
+            console.warn(`MapmyIndia API Limit or Invalid Token (Status ${err.response.status}), switching key and retrying...`);
+            token = await getAccessToken(true); // forceSwitch
+            return await axios({
+                ...urlConfig,
+                headers: { ...urlConfig.headers, 'Authorization': `Bearer ${token}` }
+            });
+        }
+        throw err;
     }
 };
 
@@ -102,28 +145,17 @@ exports.searchPlaces = async (req, res, next) => {
             }
         }
 
-        const token = await getAccessToken();
-
         // Atlas AutoSuggest URL
-        // Added pod=City to potentially get more details, and region=IND
         let url = `https://atlas.mapmyindia.com/api/places/search/json?query=${encodeURIComponent(query)}&region=IND`;
         if (location) {
-            url += `&location=${location}`; // &pod=City removed as it might restrict results too much
+            url += `&location=${location}`;
         }
 
-        const response = await axios.get(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await makeMapplsRequestWithFailover({ method: 'GET', url });
 
         res.status(200).json({ success: true, data: response.data.suggestedLocations || [] });
     } catch (err) {
         console.error('✗ Mappls Search Proxy Error:', err.response?.status, err.message);
-        if (err.response?.status === 403) {
-            console.error('403 Forbidden - Token might be invalid. Response:', err.response?.data);
-            // Force token refresh on next request
-            cachedToken = null;
-            tokenExpiry = null;
-        }
         // Do not crash, return empty list
         res.status(200).json({ success: false, data: [], error: err.message });
     }
@@ -172,7 +204,7 @@ exports.getPlaceDetails = async (req, res, next) => {
                 // BUT 'search' with 'pod' might work? No.
                 // Let's try: https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}
                 const url = `https://atlas.mapmyindia.com/api/places/eloc?eloc=${eloc}`;
-                const response = await axios.get(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await makeMapplsRequestWithFailover({ method: 'GET', url });
                 data = response.data;
 
             } catch (eLocError) {
@@ -185,7 +217,7 @@ exports.getPlaceDetails = async (req, res, next) => {
                 if (address) {
                     try {
                         const geoUrl = `https://atlas.mapmyindia.com/api/places/geocode?address=${encodeURIComponent(address)}`;
-                        const geoRes = await axios.get(geoUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                        const geoRes = await makeMapplsRequestWithFailover({ method: 'GET', url: geoUrl });
 
                         if (geoRes.data.copResults) {
                             data = geoRes.data.copResults;
@@ -196,7 +228,7 @@ exports.getPlaceDetails = async (req, res, next) => {
                                 try {
                                     // Use the textsearch endpoint which returns coordinates
                                     const detailUrl = `https://atlas.mapmyindia.com/api/places/textsearch/json?query=${data.eLoc}&pod=eLoc`;
-                                    const detailRes = await axios.get(detailUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                                    const detailRes = await makeMapplsRequestWithFailover({ method: 'GET', url: detailUrl });
 
                                     if (detailRes.data && detailRes.data.suggestedLocations && detailRes.data.suggestedLocations.length > 0) {
                                         const location = detailRes.data.suggestedLocations[0];
@@ -294,7 +326,7 @@ exports.getPlaceDetails = async (req, res, next) => {
         // 4. Reverse Geocode (if lat/lng provided and no data yet)
         if (!data && lat && lng) {
             const url = `https://atlas.mapmyindia.com/api/places/rev_geocode?lat=${lat}&lng=${lng}`;
-            const response = await axios.get(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const response = await makeMapplsRequestWithFailover({ method: 'GET', url });
             data = response.data.results?.[0];
         }
 

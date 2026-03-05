@@ -4,6 +4,8 @@ import { getChemists, deleteChemist } from '../../api/chemist.api';
 import { getHQs } from '../../api/hq.api';
 import { useAuth } from '../../context/AuthContext';
 import ChemistForm from './ChemistForm';
+import { Eye } from 'lucide-react';
+import RecordDetailModal from '../../components/ui/RecordDetailModal';
 
 const ChemistList: React.FC = () => {
     const { user } = useAuth();
@@ -13,6 +15,7 @@ const ChemistList: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingChemist, setEditingChemist] = useState<any>(null);
+    const [viewingChemist, setViewingChemist] = useState<any>(null);
 
     useEffect(() => {
         loadData();
@@ -102,7 +105,16 @@ const ChemistList: React.FC = () => {
                     { header: 'Address', accessor: 'address' },
                 ]}
                 actions={(row) => (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => setViewingChemist(row)}
+                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                title="View Details"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </button>
+                        )}
                         <button
                             onClick={() => handleEdit(row)}
                             className="text-blue-600 hover:text-blue-900"
@@ -124,6 +136,13 @@ const ChemistList: React.FC = () => {
                     onClose={() => setShowForm(false)}
                     onSuccess={handleFormSuccess}
                     initialData={editingChemist}
+                />
+            )}
+            {viewingChemist && (
+                <RecordDetailModal
+                    record={viewingChemist}
+                    title={`Chemist: ${viewingChemist.name || ''}`}
+                    onClose={() => setViewingChemist(null)}
                 />
             )}
         </div>

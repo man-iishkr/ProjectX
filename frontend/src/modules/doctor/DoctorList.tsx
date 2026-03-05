@@ -4,7 +4,9 @@ import DoctorForm from './DoctorForm';
 import { useAuth } from '../../context/AuthContext';
 import { useDoctors, useDeleteDoctor, useUpdateDoctor, useBatchApproveDoctors } from '../../hooks/useDoctors';
 import { useHQs } from '../../hooks/useHQs';
-import { ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle, Eye, UploadCloud } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import RecordDetailModal from '../../components/ui/RecordDetailModal';
 
 interface DoctorListProps {
     hideAddButton?: boolean;
@@ -13,11 +15,13 @@ interface DoctorListProps {
 
 const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 'Doctors' }) => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [selectedHQ, setSelectedHQ] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingDoctor, setEditingDoctor] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+    const [viewingDoctor, setViewingDoctor] = useState<any>(null);
 
     const { data: doctors, isLoading: loading } = useDoctors(selectedHQ);
     const { data: hqs } = useHQs();
@@ -105,6 +109,15 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
 
     const actions = (row: any) => (
         <div className="flex gap-2 items-center">
+            {user?.role === 'admin' && (
+                <button
+                    onClick={() => setViewingDoctor(row)}
+                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                    title="View Details"
+                >
+                    <Eye className="h-4 w-4" />
+                </button>
+            )}
             {row.approvalStatus === 'Pending' && (user?.role === 'admin' || user?.role === 'hq') && (
                 <button
                     onClick={() => handleApprove(row._id)}
@@ -122,12 +135,17 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                     View Image
                 </button>
             )}
-            <button
-                onClick={() => handleEdit(row)}
-                className="text-blue-600 hover:text-blue-900"
-            >
-                Edit
-            </button>
+
+            {/* Admin/HQ can always edit. Employees can ONLY edit if they created it AND it is Pending */}
+            {(user?.role === 'admin' || user?.role === 'hq' || (row.approvalStatus === 'Pending' && row.createdBy?._id === user?.id)) && (
+                <button
+                    onClick={() => handleEdit(row)}
+                    className="text-blue-600 hover:text-blue-900"
+                >
+                    Edit
+                </button>
+            )}
+
             {user?.role === 'admin' && (
                 <button
                     onClick={() => handleDelete(row._id)}
@@ -179,6 +197,20 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                             ))}
                         </select>
                     )}
+
+                    {!hideAddButton && user?.role !== 'admin' && user?.role !== 'hq' && (
+                        <button
+                            onClick={() => {
+                                const basePath = user?.role === 'bde' ? '/employee' : '/manager';
+                                navigate(`${basePath}/import`);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                        >
+                            <UploadCloud className="h-4 w-4" />
+                            Import Excel
+                        </button>
+                    )}
+
                     {!hideAddButton && (
                         <button
                             onClick={handleAdd}
@@ -254,6 +286,13 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                     onClose={() => setShowForm(false)}
                     onSuccess={handleFormSuccess}
                     initialData={editingDoctor}
+                />
+            )}
+            {viewingDoctor && (
+                <RecordDetailModal
+                    record={viewingDoctor}
+                    title={`Doctor Details: ${viewingDoctor.name || ''}`}
+                    onClose={() => setViewingDoctor(null)}
                 />
             )}
         </div>

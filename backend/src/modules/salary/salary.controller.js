@@ -22,6 +22,8 @@ exports.getAllSalaries = async (req, res) => {
     }
 };
 
+const CallReport = require('../callReport/call.model');
+
 // Get logged-in employee's own salary (accessible by any authenticated user)
 exports.getMySalary = async (req, res) => {
     try {
@@ -30,8 +32,50 @@ exports.getMySalary = async (req, res) => {
         if (year) query['period.year'] = parseInt(year);
         if (month) query['period.month'] = parseInt(month);
 
-        const salary = await Salary.findOne(query)
+        let salary = await Salary.findOne(query)
             .populate('employee', 'name email employeeId designation');
+
+        // Dynamic TA Calculation
+        let calculatedTA = 0;
+        let totalDistance = 0;
+        const TA_RATE_PER_KM = 10; // Predefined TA rate
+
+        if (year && month) {
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0, 23, 59, 59);
+
+            const calls = await CallReport.find({
+                employee: req.user.id,
+                date: { $gte: startDate, $lte: endDate },
+                isApproved: true
+            }).populate('doctor', 'distance');
+
+            totalDistance = calls.reduce((sum, call) => sum + (call.doctor?.distance || 0), 0);
+            calculatedTA = totalDistance * TA_RATE_PER_KM;
+        }
+
+        if (!salary) {
+            // Return dummy record with calculated TA for live profile tracking
+            return res.json({
+                success: true,
+                data: {
+                    period: { year, month },
+                    allowances: { ta: calculatedTA },
+                    liveDistance: totalDistance,
+                    isDummy: true
+                }
+            });
+        }
+
+        // If salary exists but not paid, attach live calculation just in case
+        salary = salary.toObject();
+        salary.liveTA = calculatedTA;
+        salary.liveDistance = totalDistance;
+
+        if (!salary.allowances?.ta) {
+            salary.allowances = salary.allowances || {};
+            salary.allowances.ta = calculatedTA;
+        }
 
         res.json({ success: true, data: salary });
     } catch (error) {

@@ -8,7 +8,7 @@ const HQSchema = new mongoose.Schema({
     },
     location: {
         type: String, // String Address
-        required: [true, 'Please add a location']
+        required: false
     },
     // GeoJSON Point for Mapping/Radius Search
     coordinates: {
@@ -24,7 +24,7 @@ const HQSchema = new mongoose.Schema({
     },
     state: {
         type: String,
-        required: true
+        required: false
     },
     employeeStrength: {
         type: Number,

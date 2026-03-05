@@ -4,6 +4,8 @@ import { getStockists, deleteStockist } from '../../api/stockist.api';
 import { getHQs } from '../../api/hq.api';
 import { useAuth } from '../../context/AuthContext';
 import StockistForm from './StockistForm';
+import { Eye } from 'lucide-react';
+import RecordDetailModal from '../../components/ui/RecordDetailModal';
 
 const StockistList: React.FC = () => {
     const { user } = useAuth();
@@ -13,6 +15,7 @@ const StockistList: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingStockist, setEditingStockist] = useState<any>(null);
+    const [viewingStockist, setViewingStockist] = useState<any>(null);
 
     useEffect(() => {
         loadData();
@@ -105,7 +108,16 @@ const StockistList: React.FC = () => {
                     { header: 'Created', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
                 ]}
                 actions={(row: any) => (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => setViewingStockist(row)}
+                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                title="View Details"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </button>
+                        )}
                         <button
                             onClick={() => handleEdit(row)}
                             className="text-blue-600 hover:text-blue-900"
@@ -127,6 +139,13 @@ const StockistList: React.FC = () => {
                     onClose={() => setShowForm(false)}
                     onSuccess={handleFormSuccess}
                     initialData={editingStockist}
+                />
+            )}
+            {viewingStockist && (
+                <RecordDetailModal
+                    record={viewingStockist}
+                    title={`Stockist: ${viewingStockist.name || ''}`}
+                    onClose={() => setViewingStockist(null)}
                 />
             )}
         </div>

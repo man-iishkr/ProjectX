@@ -48,7 +48,21 @@ exports.getEmployees = async (req, res, next) => {
         if (req.user.role === 'admin') {
             // Admin sees everyone, with optional HQ filter for data segmentation
             if (req.query.hq) {
-                filter.hq = req.query.hq;
+                // Support both ObjectId match and HQ name string match
+                // (some imported employees may have hq stored as string name, not ObjectId)
+                const HQ = require('../hq/hq.model');
+                const hqDoc = await HQ.findById(req.query.hq).select('name');
+                const hqConditions = [{ hq: req.query.hq }];
+                if (hqDoc) {
+                    hqConditions.push({ hq: hqDoc.name });
+                    hqConditions.push({ hq: hqDoc.name.toLowerCase() });
+                }
+                // Merge with existing $or if present
+                if (filter.$or) {
+                    filter = { $and: [{ $or: filter.$or }, { $or: hqConditions }, { role: { $ne: 'admin' } }] };
+                } else {
+                    filter.$or = hqConditions;
+                }
             }
         } else {
             // SM/RSM/ASM: see only their subordinates
@@ -143,7 +157,7 @@ exports.getEmployee = async (req, res, next) => {
 // @access  Private (Admin)
 exports.updateEmployee = async (req, res, next) => {
     try {
-        let user = await User.findById(req.params.id);
+        const user = await User.findById(req.params.id).select('+password');
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'Employee not found' });
@@ -153,10 +167,17 @@ exports.updateEmployee = async (req, res, next) => {
             return res.status(403).json({ success: false, error: 'Not authorized to update' });
         }
 
-        user = await User.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        // Apply all fields from body except password
+        const { password, ...otherFields } = req.body;
+        Object.assign(user, otherFields);
+
+        // Only update password if a new one was explicitly provided (non-empty)
+        if (password && password.trim() !== '') {
+            user.password = password.trim();
+            // The pre('save') hook will hash it automatically
+        }
+
+        await user.save({ validateModifiedOnly: true });
 
         res.status(200).json({
             success: true,

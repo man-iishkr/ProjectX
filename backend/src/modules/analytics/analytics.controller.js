@@ -199,7 +199,7 @@ exports.getDashboardSummary = async (req, res) => {
         const currentMonth = parseInt(month) || new Date().getMonth() + 1;
 
         // 1. Base Counts (Live)
-        let employeeQuery = { role: 'employee' };
+        let employeeQuery = { role: { $ne: 'admin' } };
         let hqQuery = {};
         let stockistQuery = {};
         let doctorQuery = {};
@@ -235,7 +235,7 @@ exports.getDashboardSummary = async (req, res) => {
             matchedEmployeeIds = [employeeId];
         } else if (hqId) {
             // Find all employees in this HQ
-            const hqUsers = await User.find({ hq: hqId, role: 'employee' }).select('_id');
+            const hqUsers = await User.find({ hq: hqId, role: { $ne: 'admin' } }).select('_id');
             matchedEmployeeIds = hqUsers.map(u => u._id);
         }
 
@@ -303,7 +303,7 @@ exports.getDashboardSummary = async (req, res) => {
         if (!employeeId) {
             // HQ Distribution based on User roles
             hqDistribution = await User.aggregate([
-                { $match: { role: 'employee', hq: { $exists: true } } },
+                { $match: { role: { $ne: 'admin' }, hq: { $exists: true } } },
                 { $group: { _id: '$hq', count: { $sum: 1 } } },
                 { $lookup: { from: 'hqs', localField: '_id', foreignField: '_id', as: 'hqDetails' } },
                 { $unwind: '$hqDetails' },
@@ -372,7 +372,7 @@ exports.getCallFrequencyStats = async (req, res) => {
         const endDate = new Date(y, m, 0, 23, 59, 59);
 
         // 1. Find relevant employees
-        let empFilter = { role: 'employee' };
+        let empFilter = { role: { $ne: 'admin' } };
         if (hqId) empFilter.hq = hqId;
         if (employeeId) empFilter._id = employeeId;
 

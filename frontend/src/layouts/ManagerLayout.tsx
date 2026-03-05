@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import {
     LayoutDashboard,
     Users,
+    User,
     Stethoscope,
     FlaskConical,
     Map,
@@ -24,6 +25,7 @@ const ManagerLayout: React.FC = () => {
 
     const baseItems = [
         { label: 'Dashboard', path: '/manager/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+        { label: 'My Profile', path: '/manager/profile', icon: <User className="h-4 w-4" /> },
         { label: 'My Team', path: '/manager/employees', icon: <Users className="h-4 w-4" /> },
         { label: 'Doctors', path: '/manager/doctors', icon: <Stethoscope className="h-4 w-4" /> },
         { label: 'Chemists', path: '/manager/chemists', icon: <FlaskConical className="h-4 w-4" /> },
