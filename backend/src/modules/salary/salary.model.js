@@ -22,6 +22,9 @@ const SalarySchema = new mongoose.Schema({
         min: 0
     },
     allowances: {
+        hqAllowance: { type: Number, default: 0 },
+        xStationAllowance: { type: Number, default: 0 },
+        offStationAllowance: { type: Number, default: 0 },
         hra: { type: Number, default: 0 },
         ta: { type: Number, default: 0 },
         da: { type: Number, default: 0 },
@@ -88,7 +91,10 @@ SalarySchema.index({ employee: 1, 'period.year': 1, 'period.month': 1 }, { uniqu
 
 // Virtual for total allowances
 SalarySchema.virtual('totalAllowances').get(function () {
-    return this.allowances.hra +
+    return this.allowances.hqAllowance +
+        this.allowances.xStationAllowance +
+        this.allowances.offStationAllowance +
+        this.allowances.hra +
         this.allowances.ta +
         this.allowances.da +
         this.allowances.medical +

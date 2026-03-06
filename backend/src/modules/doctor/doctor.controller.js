@@ -75,6 +75,17 @@ exports.createDoctor = async (req, res, next) => {
             }
         }
 
+        // Validate Off-Station limit
+        if (req.body.distance) {
+            const offStationLimit = Number(process.env.OFF_STATION_LIMIT_KM) || 150;
+            if (req.body.distance > offStationLimit) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Doctor route distance (${req.body.distance} km) exceeds the maximum allowed limit of ${offStationLimit} km.`
+                });
+            }
+        }
+
         const doctor = await Doctor.create(req.body);
 
         // Invalidate cache
@@ -249,6 +260,18 @@ exports.updateDoctor = async (req, res, next) => {
                 } catch (distErr) {
                     console.error('Road distance calc failed:', distErr.message);
                 }
+            }
+        }
+
+        // Validate Off-Station limit
+        const finalDistance = req.body.distance !== undefined ? req.body.distance : doctor.distance;
+        if (finalDistance && finalDistance > 0) {
+            const offStationLimit = Number(process.env.OFF_STATION_LIMIT_KM) || 150;
+            if (finalDistance > offStationLimit) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Updated doctor route distance (${finalDistance} km) exceeds the maximum allowed limit of ${offStationLimit} km.`
+                });
             }
         }
 

@@ -46,7 +46,7 @@ exports.createCallReport = async (req, res, next) => {
 
         // Calculate details
         const distance = haversine(doctorCoords, empCoords);
-        const threshold = 20; // meters. PRD says 20m.
+        const threshold = Number(process.env.ATTENDANCE_DISTANCE_THRESHOLD_METERS) || 100; // meters. PRD says 20m.
         const isApproved = distance <= threshold;
 
         // Filter out self from alongWith
@@ -108,31 +108,85 @@ exports.createCallReport = async (req, res, next) => {
                 });
 
                 if (callsTodayCount === 0) {
-                    // First successful call of the day -> Mark Present
+                    // First successful call of the day -> Mark Present & Add HQ Allowance
                     salary.workingDays.present += 1;
+                    const hqAllowance = Number(process.env.HQ_ALLOWANCE_PER_DAY) || 150;
+                    salary.allowances.hqAllowance = (salary.allowances.hqAllowance || 0) + hqAllowance;
                 }
 
-                // 2. Travel Allowance (TA)
-                // Logic: "calculate distance * 10". 
-                // User said "if route is set from one location to other... road distance... multiplied by a fixed given cost"
-                // And "if the route of doctor is defined same ,i.e jamshedpur to jamshedpur, no calculation is made"
+                // Fetch all previous approved calls for TODAY to evaluate daily gates
+                const callsTodayCursor = await CallReport.find({
+                    employee: req.user.id,
+                    createdAt: { $gte: startOfDay, $lte: endOfDay },
+                    isApproved: true,
+                    _id: { $ne: callReport._id } // Exclude current one
+                }).populate('doctor', 'routeTo distance routeFrom');
 
-                let taAmount = 0;
+                // 2. Evaluate State (HQ vs X-Station vs Off-Station)
+                const docDistance = doctor.distance || 0;
+                const xStationLimit = Number(process.env.X_STATION_LIMIT_KM) || 50;
 
-                // Normalization for comparison
-                const routeFrom = (doctor.routeFrom || '').trim().toLowerCase();
-                const routeTo = (doctor.routeTo || '').trim().toLowerCase();
+                let isCurrentXStation = false;
+                let isCurrentOffStation = false;
 
-                if (routeFrom !== routeTo) {
-                    // Different locations -> Calculate TA
-                    // We rely on doctor.distance being populated (manually or via Google API elsewhere)
-                    if (doctor.distance && doctor.distance > 0) {
-                        taAmount = doctor.distance * 10;
+                if (doctor.routeFrom && doctor.routeTo && doctor.routeFrom.trim().toLowerCase() !== doctor.routeTo.trim().toLowerCase() && docDistance > 0) {
+                    if (docDistance <= xStationLimit) {
+                        isCurrentXStation = true;
+                    } else {
+                        isCurrentOffStation = true;
                     }
                 }
 
-                if (taAmount > 0) {
-                    salary.allowances.ta += taAmount;
+                // 3. Mutually Exclusive Tiered Allowances
+                let hasPastXStation = false;
+                let hasPastOffStation = false;
+                let visitedRoutesToday = new Set();
+
+                for (const priorCall of callsTodayCursor) {
+                    if (priorCall.doctor) {
+                        const priorDist = priorCall.doctor.distance || 0;
+                        if (priorDist > 0 && priorCall.doctor.routeFrom && priorCall.doctor.routeTo && priorCall.doctor.routeFrom.trim().toLowerCase() !== priorCall.doctor.routeTo.trim().toLowerCase()) {
+                            if (priorDist <= xStationLimit) hasPastXStation = true;
+                            if (priorDist > xStationLimit) hasPastOffStation = true;
+                        }
+
+                        if (priorCall.doctor.routeTo) {
+                            visitedRoutesToday.add(priorCall.doctor.routeTo.trim().toLowerCase());
+                        }
+                    }
+                }
+
+                // Inject Allowance (Off-station has priority)
+                if (isCurrentOffStation) {
+                    if (!hasPastOffStation) {
+                        const offStationAllowance = Number(process.env.OFF_STATION_ALLOWANCE_PER_DAY) || 300;
+                        salary.allowances.offStationAllowance = (salary.allowances.offStationAllowance || 0) + offStationAllowance;
+
+                        // Deduct X-Station if it was already awarded earlier today
+                        if (hasPastXStation) {
+                            const xStationAllowance = Number(process.env.X_STATION_ALLOWANCE_PER_DAY) || 250;
+                            salary.allowances.xStationAllowance = Math.max(0, (salary.allowances.xStationAllowance || 0) - xStationAllowance);
+                        }
+                    }
+                } else if (isCurrentXStation) {
+                    // Only award X-Station if no Off-station happened today AND no X-station happened today
+                    if (!hasPastOffStation && !hasPastXStation) {
+                        const xStationAllowance = Number(process.env.X_STATION_ALLOWANCE_PER_DAY) || 250;
+                        salary.allowances.xStationAllowance = (salary.allowances.xStationAllowance || 0) + xStationAllowance;
+                    }
+                }
+
+                // 4. Travel Allowance (TA) - Exactly Once per Route Designation per day
+                const currentRouteTo = (doctor.routeTo || '').trim().toLowerCase();
+
+                if (currentRouteTo && (isCurrentXStation || isCurrentOffStation) && !visitedRoutesToday.has(currentRouteTo)) {
+                    let taRate = 0;
+                    if (isCurrentXStation) taRate = Number(process.env.X_STATION_TA_RATE_PER_KM) || 5;
+                    if (isCurrentOffStation) taRate = Number(process.env.OFF_STATION_TA_RATE_PER_KM) || 10;
+
+                    if (taRate > 0) {
+                        salary.allowances.ta = (salary.allowances.ta || 0) + (docDistance * taRate);
+                    }
                 }
 
                 await salary.save();

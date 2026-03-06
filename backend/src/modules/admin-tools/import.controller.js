@@ -345,6 +345,12 @@ exports.importData = async (req, res, next) => {
                 if (!mappedData.mobile) mappedData.mobile = '0000000000';
                 if (!mappedData.area) mappedData.area = 'N/A';
                 if (!mappedData.speciality) mappedData.speciality = 'N/A';
+
+                const offStationLimit = Number(process.env.OFF_STATION_LIMIT_KM) || 150;
+                if (mappedData.distance !== undefined && mappedData.distance > offStationLimit) {
+                    rowWarnings.push(`Distance ${mappedData.distance}km exceeds off-station limit (${offStationLimit}km) — reset to 0`);
+                    mappedData.distance = 0;
+                }
             }
 
             // Set metadata
