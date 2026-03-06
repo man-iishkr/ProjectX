@@ -7,6 +7,7 @@ import { useHQs } from '../../hooks/useHQs';
 import { ChevronDown, ChevronUp, CheckCircle, Eye, UploadCloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RecordDetailModal from '../../components/ui/RecordDetailModal';
+import { exportToExcel } from '../../utils/exportToExcel';
 
 interface DoctorListProps {
     hideAddButton?: boolean;
@@ -196,6 +197,15 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                                 </option>
                             ))}
                         </select>
+                    )}
+
+                    {user?.role === 'admin' && activeTab === 'all' && (
+                        <button
+                            onClick={() => exportToExcel(allDoctors, 'Doctors_Export')}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                        >
+                            Export Excel
+                        </button>
                     )}
 
                     {!hideAddButton && user?.role !== 'admin' && user?.role !== 'hq' && (

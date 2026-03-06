@@ -10,6 +10,7 @@ import Modal from '../../components/ui/Modal';
 import axios from 'axios';
 import api from '../../api/axios';
 import RecordDetailModal from '../../components/ui/RecordDetailModal';
+import { exportToExcel } from '../../utils/exportToExcel';
 
 const ROLE_OPTIONS = [
     { value: 'bde', label: 'BDE (Business Development Executive)' },
@@ -267,6 +268,14 @@ const EmployeeList: React.FC = () => {
                                 </option>
                             ))}
                         </select>
+                    )}
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={() => exportToExcel(employees, 'Employees_Export')}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center h-10 text-sm font-medium"
+                        >
+                            Export Excel
+                        </button>
                     )}
                     <Button onClick={openCreateModal}>
                         <Plus className="h-4 w-4 mr-2" />

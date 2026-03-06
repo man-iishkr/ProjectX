@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import ChemistForm from './ChemistForm';
 import { Eye } from 'lucide-react';
 import RecordDetailModal from '../../components/ui/RecordDetailModal';
+import { exportToExcel } from '../../utils/exportToExcel';
 
 const ChemistList: React.FC = () => {
     const { user } = useAuth();
@@ -85,6 +86,14 @@ const ChemistList: React.FC = () => {
                                 </option>
                             ))}
                         </select>
+                    )}
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={() => exportToExcel(chemists, 'Chemists_Export')}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center h-10 text-sm font-medium"
+                        >
+                            Export Excel
+                        </button>
                     )}
                     <button
                         onClick={handleAdd}
