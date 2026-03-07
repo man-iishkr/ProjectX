@@ -52,7 +52,12 @@ const EmployeeList: React.FC = () => {
         state: '',
         division: '',
         staffType: '',
-        monthlyPay: '',
+        salaryDetails: {
+            basicPay: '', eduAllow: '', conveyance: '', medical: '', splAllow: '', vme: '', hra: '', lta: '', pf: '', gpa: ''
+        },
+        allowanceRates: {
+            hqAllowance: '', xStationAllowance: '', offStationAllowance: ''
+        },
         distanceTravelled: 0,
         joiningDate: '',
         resignationDate: '',
@@ -138,6 +143,17 @@ const EmployeeList: React.FC = () => {
         }
     };
 
+    const handleNestedInputChange = (category: 'salaryDetails' | 'allowanceRates', e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [category]: {
+                ...prev[category] as any,
+                [name]: value
+            }
+        }));
+    };
+
     const openCreateModal = () => {
         setFormData(emptyForm);
         setIsEditing(false);
@@ -157,7 +173,23 @@ const EmployeeList: React.FC = () => {
             state: employee.state || '',
             division: employee.division || '',
             staffType: employee.staffType || '',
-            monthlyPay: employee.monthlyPay || '',
+            salaryDetails: {
+                basicPay: employee.salaryDetails?.basicPay || '',
+                eduAllow: employee.salaryDetails?.eduAllow || '',
+                conveyance: employee.salaryDetails?.conveyance || '',
+                medical: employee.salaryDetails?.medical || '',
+                splAllow: employee.salaryDetails?.splAllow || '',
+                vme: employee.salaryDetails?.vme || '',
+                hra: employee.salaryDetails?.hra || '',
+                lta: employee.salaryDetails?.lta || '',
+                pf: employee.salaryDetails?.pf || '',
+                gpa: employee.salaryDetails?.gpa || ''
+            },
+            allowanceRates: {
+                hqAllowance: employee.allowanceRates?.hqAllowance || '',
+                xStationAllowance: employee.allowanceRates?.xStationAllowance || '',
+                offStationAllowance: employee.allowanceRates?.offStationAllowance || ''
+            },
             distanceTravelled: employee.distanceTravelled || 0,
             joiningDate: employee.joiningDate ? employee.joiningDate.split('T')[0] : '',
             resignationDate: employee.resignationDate ? employee.resignationDate.split('T')[0] : '',
@@ -435,17 +467,63 @@ const EmployeeList: React.FC = () => {
                         </select>
                     </div>
 
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Monthly Pay *</label>
-                        <Input
-                            name="monthlyPay"
-                            type="number"
-                            value={formData.monthlyPay}
-                            onChange={handleInputChange}
-                            required
-                            className="bg-background"
-                        />
-                    </div>
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4">Salary Structure (Monthly)</div>
+                    {[
+                        { label: 'Basic Pay', name: 'basicPay' },
+                        { label: 'H.R.A.', name: 'hra' },
+                        { label: 'Edu Allowance', name: 'eduAllow' },
+                        { label: 'Conveyance', name: 'conveyance' },
+                        { label: 'Medical', name: 'medical' },
+                        { label: 'Special Allowance', name: 'splAllow' },
+                        { label: 'VME', name: 'vme' },
+                        { label: 'LTA', name: 'lta' },
+                    ].map(field => (
+                        <div key={field.name}>
+                            <label className="text-sm font-medium mb-1 block">{field.label}</label>
+                            <Input
+                                name={field.name}
+                                type="number"
+                                value={(formData.salaryDetails as any)[field.name]}
+                                onChange={(e) => handleNestedInputChange('salaryDetails', e)}
+                                className="bg-background"
+                            />
+                        </div>
+                    ))}
+
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4 text-destructive">Reductions / Deductions</div>
+                    {[
+                        { label: 'Provident Fund (PF)', name: 'pf' },
+                        { label: 'GPA', name: 'gpa' },
+                    ].map(field => (
+                        <div key={field.name}>
+                            <label className="text-sm font-medium mb-1 block text-destructive">{field.label}</label>
+                            <Input
+                                name={field.name}
+                                type="number"
+                                value={(formData.salaryDetails as any)[field.name]}
+                                onChange={(e) => handleNestedInputChange('salaryDetails', e)}
+                                className="bg-background"
+                            />
+                        </div>
+                    ))}
+
+                    <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4 text-primary">Daily Operational Limits</div>
+                    {[
+                        { label: 'HQ Allowance / Day', name: 'hqAllowance' },
+                        { label: 'X-Station Allowance / Day', name: 'xStationAllowance' },
+                        { label: 'Off-Station Allowance / Day', name: 'offStationAllowance' },
+                    ].map(field => (
+                        <div key={field.name}>
+                            <label className="text-sm font-medium mb-1 block text-primary">{field.label}</label>
+                            <Input
+                                name={field.name}
+                                type="number"
+                                value={(formData.allowanceRates as any)[field.name]}
+                                onChange={(e) => handleNestedInputChange('allowanceRates', e)}
+                                className="bg-background"
+                            />
+                        </div>
+                    ))}
 
                     <div>
                         <label className="text-sm font-medium mb-1 block">Resignation Date</label>

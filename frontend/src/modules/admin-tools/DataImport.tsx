@@ -6,11 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 // ── DB Schema field definitions per database ──────────────────────────────────
 const DB_FIELDS: Record<string, string[]> = {
     doctors: ['name', 'code', 'speciality', 'class', 'frequency', 'dob', 'anniversary', 'mobile', 'email', 'address', 'clinicAddress', 'residentialAddress', 'hq', 'routeFrom', 'routeTo', 'area', 'latitude', 'longitude'],
-    employees: ['name', 'username', 'password', 'role', 'designation', 'state', 'division', 'monthlyPay', 'staffType', 'mobile', 'email', 'address', 'hq', 'reportingTo', 'joiningDate', 'resignationDate'],
+    employees: ['name', 'username', 'password', 'role', 'designation', 'state', 'division', 'salaryDetails.basicPay', 'salaryDetails.hra', 'allowanceRates.hqAllowance', 'allowanceRates.xStationAllowance', 'allowanceRates.offStationAllowance', 'staffType', 'mobile', 'email', 'address', 'hq', 'reportingTo', 'joiningDate', 'resignationDate'],
     chemists: ['name', 'contactPerson', 'mobile', 'phone', 'email', 'address', 'hq', 'latitude', 'longitude'],
     stockists: ['name', 'contact', 'mobile', 'email', 'address', 'hq', 'latitude', 'longitude'],
     hqs: ['name', 'location', 'employeeStrength', 'managerStrength', 'transitDays'],
     routes: ['name', 'code', 'areas', 'hq'],
+    products: ['slNo', 'name', 'code', 'mrp', 'ptr', 'pts'],
 };
 
 const DB_LABELS: Record<string, string> = {
@@ -20,6 +21,7 @@ const DB_LABELS: Record<string, string> = {
     stockists: 'Stockists',
     hqs: 'Headquarters (HQs)',
     routes: 'Routes',
+    products: 'Products',
 };
 
 const SPECIAL_OPTIONS = [

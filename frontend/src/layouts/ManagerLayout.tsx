@@ -15,7 +15,8 @@ import {
     PhoneCall,
     Calendar,
     Wallet,
-    Truck
+    Truck,
+    Package
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,9 +31,12 @@ const ManagerLayout: React.FC = () => {
         { label: 'Doctors', path: '/manager/doctors', icon: <Stethoscope className="h-4 w-4" /> },
         { label: 'Chemists', path: '/manager/chemists', icon: <FlaskConical className="h-4 w-4" /> },
         { label: 'Stockists', path: '/manager/stockists', icon: <Truck className="h-4 w-4" /> },
+        { label: 'Products', path: '/manager/inventory/products', icon: <Package className="h-4 w-4" /> },
         { label: 'Routing', path: '/manager/routing', icon: <Map className="h-4 w-4" /> },
         { label: 'Targets', path: '/manager/targets', icon: <Target className="h-4 w-4" /> },
         { label: 'Call Reports', path: '/manager/calls', icon: <PhoneCall className="h-4 w-4" /> },
+        { label: 'Tour Planner', path: '/manager/tour-planner', icon: <Map className="h-4 w-4" /> },
+        { label: 'Tour Approvals', path: '/manager/tour-approvals', icon: <Map className="h-4 w-4" /> },
         { label: 'Expense Approval', path: '/manager/expenses', icon: <Receipt className="h-4 w-4" /> },
         { label: 'Leave Management', path: '/manager/leave', icon: <Calendar className="h-4 w-4" /> },
     ];

@@ -48,7 +48,29 @@ const UserSchema = new mongoose.Schema({
     state: String,
     division: String,
     staffType: String,
-    monthlyPay: Number,
+    salaryDetails: {
+        basicPay: { type: Number, default: 0 },
+        eduAllow: { type: Number, default: 0 },
+        conveyance: { type: Number, default: 0 },
+        medical: { type: Number, default: 0 },
+        splAllow: { type: Number, default: 0 },
+        vme: { type: Number, default: 0 },
+        hra: { type: Number, default: 0 },
+        lta: { type: Number, default: 0 },
+        pf: { type: Number, default: 0 }, // Deduction
+        gpa: { type: Number, default: 0 } // Deduction
+    },
+    allowanceRates: {
+        hqAllowance: { type: Number, default: 0 },
+        xStationAllowance: { type: Number, default: 0 },
+        offStationAllowance: { type: Number, default: 0 }
+    },
+    employeeInfo: {
+        department: String,
+        category: String,
+        uan: String,
+        esicNo: String
+    },
     distanceTravelled: {
         type: Number,
         default: 0
@@ -60,9 +82,9 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Encrypt password using bcrypt
-UserSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function () {
     if (!this.isModified('password')) {
-        next();
+        return;
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

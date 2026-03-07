@@ -9,7 +9,7 @@ import { Target, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 const MonthlyProgressView: React.FC = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
-    const isEmployee = user?.role === 'employee';
+    const isEmployee = user?.role === 'bde';
 
     const currentDate = new Date();
     const currentMonthNum = currentDate.getMonth() + 1;

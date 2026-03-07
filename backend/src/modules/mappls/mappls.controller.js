@@ -19,8 +19,8 @@ const getAccessToken = async (forceSwitch = false) => {
     }
 
     const keys = [
-        { id: process.env.MAPPLS_CLIENT_ID, secret: process.env.MAPPLS_CLIENT_SECRET },
-        { id: process.env.MAPPLS_CLIENT_ID_2, secret: process.env.MAPPLS_CLIENT_SECRET_2 }
+        { id: process.env.MAPPLS_CLIENT_ID_2, secret: process.env.MAPPLS_CLIENT_SECRET_2 },
+        { id: process.env.MAPPLS_CLIENT_ID, secret: process.env.MAPPLS_CLIENT_SECRET }
     ];
 
     let lastError = null;
@@ -151,12 +151,35 @@ exports.searchPlaces = async (req, res, next) => {
             url += `&location=${location}`;
         }
 
-        const response = await makeMapplsRequestWithFailover({ method: 'GET', url });
+        try {
+            const response = await makeMapplsRequestWithFailover({ method: 'GET', url });
+            return res.status(200).json({ success: true, data: response.data.suggestedLocations || [] });
+        } catch (mapplsError) {
+            console.warn('MapmyIndia Search Failed, falling back to Nominatim...', mapplsError.message);
+            // Fallback to Nominatim Autocomplete
+            try {
+                const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&countrycodes=in`;
+                const osmRes = await axios.get(osmUrl, { headers: { 'User-Agent': 'CricketProjectX/1.0' } });
 
-        res.status(200).json({ success: true, data: response.data.suggestedLocations || [] });
+                if (osmRes.data && osmRes.data.length > 0) {
+                    const fallbackData = osmRes.data.map(item => ({
+                        eLoc: `OSM-${item.place_id}`,
+                        placeName: item.name || item.display_name.split(',')[0],
+                        placeAddress: item.display_name,
+                        latitude: item.lat,
+                        longitude: item.lon,
+                        type: 'Nominatim' // Flag to indicate source
+                    }));
+                    return res.status(200).json({ success: true, data: fallbackData });
+                }
+                return res.status(200).json({ success: true, data: [] });
+            } catch (osmError) {
+                console.error('Nominatim Fallback Error:', osmError.message);
+                return res.status(200).json({ success: false, data: [], error: 'All search services failed' });
+            }
+        }
     } catch (err) {
-        console.error('✗ Mappls Search Proxy Error:', err.response?.status, err.message);
-        // Do not crash, return empty list
+        console.error('✗ Mappls Search Proxy Error:', err.message);
         res.status(200).json({ success: false, data: [], error: err.message });
     }
 };

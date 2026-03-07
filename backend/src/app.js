@@ -32,6 +32,14 @@ app.get('/', (req, res) => {
     res.send('Field ERP API is running...');
 });
 
+// Settings endpoint for Frontend consumption
+app.get('/api/v1/settings', (req, res) => {
+    res.json({
+        COMPANY_NAME: process.env.COMPANY_NAME || 'Azott Pharmaceuticals Pvt Ltd',
+        COMPANY_ADDRESS: process.env.COMPANY_ADDRESS || 'Mumbai, India'
+    });
+});
+
 // Mount routers
 app.use('/api/v1/auth', require('./modules/auth/auth.routes'));
 app.use('/api/v1/doctors', require('./modules/doctor/doctor.routes'));
@@ -57,6 +65,7 @@ app.use('/api/v1/holidays', require('./modules/holiday/holiday.routes'));
 app.use('/api/v1/admin', require('./modules/admin-tools/import.routes'));
 app.use('/api/v1/notifications', require('./modules/notification/notification.routes'));
 app.use('/api/v1/mappls', require('./modules/mappls/mappls.routes'));
+app.use('/api/v1/tour-programs', require('./modules/tourProgram/tourProgram.routes'));
 
 // ... other routes
 

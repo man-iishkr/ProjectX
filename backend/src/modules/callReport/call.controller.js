@@ -78,28 +78,21 @@ exports.createCallReport = async (req, res, next) => {
             const Salary = require('../salary/salary.model');
             const User = require('../auth/auth.model');
 
-            let salary = await Salary.findOne({
-                employee: req.user.id,
-                'period.month': month,
-                'period.year': year
-            });
+            let [salary, employee] = await Promise.all([
+                Salary.findOne({ employee: req.user.id, 'period.month': month, 'period.year': year }),
+                User.findById(req.user.id)
+            ]);
 
-            if (!salary) {
-                const employee = await User.findById(req.user.id);
-                if (employee) {
-                    salary = await Salary.create({
-                        employee: req.user.id,
-                        period: { month, year },
-                        baseSalary: employee.monthlyPay || 0
-                    });
-                }
+            if (!salary && employee) {
+                salary = await Salary.create({
+                    employee: req.user.id,
+                    period: { month, year },
+                    earnings: { basicPay: employee.salaryDetails?.basicPay || 0 }
+                });
             }
 
-            if (salary) {
+            if (salary && employee) {
                 // 1. Mark Attendance (Present) if not already marked for today
-                // We check if workingDays.present was incremented today? 
-                // Difficult to track "today" specifically in a simple counter unless we log dates.
-                // Better approach: Check if this is the FIRST approved call of the day.
                 const callsTodayCount = await CallReport.countDocuments({
                     employee: req.user.id,
                     createdAt: { $gte: startOfDay, $lte: endOfDay },
@@ -109,9 +102,9 @@ exports.createCallReport = async (req, res, next) => {
 
                 if (callsTodayCount === 0) {
                     // First successful call of the day -> Mark Present & Add HQ Allowance
-                    salary.workingDays.present += 1;
-                    const hqAllowance = Number(process.env.HQ_ALLOWANCE_PER_DAY) || 150;
-                    salary.allowances.hqAllowance = (salary.allowances.hqAllowance || 0) + hqAllowance;
+                    salary.workingDays.present = (salary.workingDays.present || 0) + 1;
+                    const hqAllowance = employee.allowanceRates?.hqAllowance || 0;
+                    salary.expenses.hqAllowance = (salary.expenses.hqAllowance || 0) + hqAllowance;
                 }
 
                 // Fetch all previous approved calls for TODAY to evaluate daily gates
@@ -125,14 +118,15 @@ exports.createCallReport = async (req, res, next) => {
                 // 2. Evaluate State (HQ vs X-Station vs Off-Station)
                 const docDistance = doctor.distance || 0;
                 const xStationLimit = Number(process.env.X_STATION_LIMIT_KM) || 50;
+                const offStationLimit = Number(process.env.OFF_STATION_LIMIT_KM) || 150;
 
                 let isCurrentXStation = false;
                 let isCurrentOffStation = false;
 
                 if (doctor.routeFrom && doctor.routeTo && doctor.routeFrom.trim().toLowerCase() !== doctor.routeTo.trim().toLowerCase() && docDistance > 0) {
-                    if (docDistance <= xStationLimit) {
+                    if (docDistance > xStationLimit && docDistance <= offStationLimit) {
                         isCurrentXStation = true;
-                    } else {
+                    } else if (docDistance > offStationLimit) {
                         isCurrentOffStation = true;
                     }
                 }
@@ -146,8 +140,8 @@ exports.createCallReport = async (req, res, next) => {
                     if (priorCall.doctor) {
                         const priorDist = priorCall.doctor.distance || 0;
                         if (priorDist > 0 && priorCall.doctor.routeFrom && priorCall.doctor.routeTo && priorCall.doctor.routeFrom.trim().toLowerCase() !== priorCall.doctor.routeTo.trim().toLowerCase()) {
-                            if (priorDist <= xStationLimit) hasPastXStation = true;
-                            if (priorDist > xStationLimit) hasPastOffStation = true;
+                            if (priorDist > xStationLimit && priorDist <= offStationLimit) hasPastXStation = true;
+                            if (priorDist > offStationLimit) hasPastOffStation = true;
                         }
 
                         if (priorCall.doctor.routeTo) {
@@ -159,20 +153,20 @@ exports.createCallReport = async (req, res, next) => {
                 // Inject Allowance (Off-station has priority)
                 if (isCurrentOffStation) {
                     if (!hasPastOffStation) {
-                        const offStationAllowance = Number(process.env.OFF_STATION_ALLOWANCE_PER_DAY) || 300;
-                        salary.allowances.offStationAllowance = (salary.allowances.offStationAllowance || 0) + offStationAllowance;
+                        const offStationAllowance = employee.allowanceRates?.offStationAllowance || 0;
+                        salary.expenses.offStationAllowance = (salary.expenses.offStationAllowance || 0) + offStationAllowance;
 
                         // Deduct X-Station if it was already awarded earlier today
                         if (hasPastXStation) {
-                            const xStationAllowance = Number(process.env.X_STATION_ALLOWANCE_PER_DAY) || 250;
-                            salary.allowances.xStationAllowance = Math.max(0, (salary.allowances.xStationAllowance || 0) - xStationAllowance);
+                            const xStationAllowance = employee.allowanceRates?.xStationAllowance || 0;
+                            salary.expenses.xStationAllowance = Math.max(0, (salary.expenses.xStationAllowance || 0) - xStationAllowance);
                         }
                     }
                 } else if (isCurrentXStation) {
                     // Only award X-Station if no Off-station happened today AND no X-station happened today
                     if (!hasPastOffStation && !hasPastXStation) {
-                        const xStationAllowance = Number(process.env.X_STATION_ALLOWANCE_PER_DAY) || 250;
-                        salary.allowances.xStationAllowance = (salary.allowances.xStationAllowance || 0) + xStationAllowance;
+                        const xStationAllowance = employee.allowanceRates?.xStationAllowance || 0;
+                        salary.expenses.xStationAllowance = (salary.expenses.xStationAllowance || 0) + xStationAllowance;
                     }
                 }
 
@@ -185,7 +179,7 @@ exports.createCallReport = async (req, res, next) => {
                     if (isCurrentOffStation) taRate = Number(process.env.OFF_STATION_TA_RATE_PER_KM) || 10;
 
                     if (taRate > 0) {
-                        salary.allowances.ta = (salary.allowances.ta || 0) + (docDistance * taRate);
+                        salary.expenses.ta = (salary.expenses.ta || 0) + (docDistance * taRate);
                     }
                 }
 

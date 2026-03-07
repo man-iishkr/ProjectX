@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getLeaves, createLeave, cancelLeave, approveLeave, rejectLeave } from '../../api/leave.api';
 import { useAuth } from '../../context/AuthContext';
 import Table from '../../components/Table';
@@ -18,15 +18,34 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
 
     // Form State
     const [formData, setFormData] = useState({
+        employeeId: user?._id || '',
         leaveType: 'casual',
         startDate: '',
         endDate: '',
         reason: ''
     });
 
+    // Employee List for Managers/Admins
+    const [subordinates, setSubordinates] = useState<any[]>([]);
+
     useEffect(() => {
         loadLeaves();
-    }, []);
+        if (user?.role !== 'bde') {
+            loadSubordinates();
+        }
+    }, [user]);
+
+    const loadSubordinates = async () => {
+        try {
+            const { getEmployees } = await import('../../api/employee.api');
+            const res = await getEmployees();
+            if (res.success) {
+                setSubordinates(res.data);
+            }
+        } catch (err) {
+            console.error('Failed to load subordinates', err);
+        }
+    };
 
     const loadLeaves = async (silent = false) => {
         try {
@@ -45,9 +64,9 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await createLeave({ ...formData, employeeId: user._id }); // Backend might expect employeeId for admins creating, but usually req.user works
+            await createLeave({ ...formData });
             setShowModal(false);
-            setFormData({ leaveType: 'casual', startDate: '', endDate: '', reason: '' });
+            setFormData({ employeeId: user?._id || '', leaveType: 'casual', startDate: '', endDate: '', reason: '' });
             await loadLeaves(true); // Silent reload
         } catch (err) {
             console.error(err);
@@ -107,10 +126,49 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
         }
     ];
 
+    const isAdmin = user?.role === 'admin';
+
+    // Calculate Monthly Summary
+    const monthlySummary = useMemo(() => {
+        if (!leaves.length || isAdmin) return null;
+
+        const summary: Record<string, number> = {};
+
+        leaves.forEach(leave => {
+            // Only count approved leaves belonging to the active user in the summary
+            // For nested views, employee id might match user._id
+            const employeeId = leave.employee?._id || leave.employee;
+            if (leave.status === 'approved' && employeeId === user?._id) {
+                const start = new Date(leave.startDate);
+                const end = new Date(leave.endDate);
+
+                // Calculate days (inclusive)
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                const monthName = start.toLocaleString('default', { month: 'long', year: 'numeric' });
+                summary[monthName] = (summary[monthName] || 0) + diffDays;
+            }
+        });
+
+        return summary;
+    }, [leaves, user, isAdmin]);
+
     if (loading) return <div>Loading leaves...</div>;
 
     return (
         <div className="space-y-6">
+            {!embedded && !isAdmin && monthlySummary && Object.keys(monthlySummary).length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
+                    {Object.entries(monthlySummary).map(([month, days]) => (
+                        <div key={month} className="bg-card border border-border rounded-xl p-4 shadow-sm text-center">
+                            <h3 className="text-sm font-medium text-muted-foreground">{month}</h3>
+                            <p className="text-2xl font-bold text-blue-600 mt-1">{days} <span className="text-sm font-normal text-muted-foreground">days taken</span></p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div className="flex justify-between items-center">
                 {!embedded ? (
                     <h1 className="text-2xl font-bold text-foreground">Leave Management</h1>
@@ -129,7 +187,7 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
                 actions={(row) => (
                     <div className="flex gap-2">
                         {/* Employee Actions */}
-                        {user?.role === 'employee' && row.status === 'pending' && (
+                        {user?.role !== 'admin' && row.status === 'pending' && (!row.employee || row.employee._id === user?._id || row.employee === user?._id) && (
                             <Button variant="ghost" size="sm" onClick={() => handleCancel(row._id)} className="text-red-600">
                                 Cancel
                             </Button>
@@ -158,6 +216,22 @@ const LeaveList: React.FC<LeaveListProps> = ({ embedded = false }) => {
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleCreate} className="space-y-4">
+                    {user?.role !== 'bde' && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Employee</label>
+                            <select
+                                className="w-full border rounded p-2 bg-background"
+                                value={formData.employeeId}
+                                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                                required
+                            >
+                                <option value={user?._id}>Self ({user?.name})</option>
+                                {subordinates.map(sub => (
+                                    <option key={sub._id} value={sub._id}>{sub.name} ({sub.designation})</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium mb-1">Leave Type</label>
                         <select

@@ -29,16 +29,32 @@ const cleanDataForExport = (data: any[]) => {
             cleaned.reportingTo = cleaned.reportingTo.name || cleaned.reportingTo._id;
         }
 
-        // Stringify complex arrays/objects to prevent [object Object] in Excel
+        // Stringify complex arrays to prevent [object Object] in Excel
         Object.keys(cleaned).forEach(key => {
             if (Array.isArray(cleaned[key])) {
                 cleaned[key] = cleaned[key].join(', ');
-            } else if (cleaned[key] !== null && typeof cleaned[key] === 'object') {
-                cleaned[key] = JSON.stringify(cleaned[key]);
             }
         });
 
-        return cleaned;
+        // Flatten deeply nested objects into discrete columns (like salaryDetails.basicPay)
+        const flattenObject = (ob: any): any => {
+            const result: any = {};
+            for (const i in ob) {
+                if (!ob.hasOwnProperty(i)) continue;
+                if (typeof ob[i] === 'object' && ob[i] !== null && !Array.isArray(ob[i])) {
+                    const flatObject = flattenObject(ob[i]);
+                    for (const x in flatObject) {
+                        if (!flatObject.hasOwnProperty(x)) continue;
+                        result[`${i}.${x}`] = flatObject[x];
+                    }
+                } else {
+                    result[i] = ob[i];
+                }
+            }
+            return result;
+        };
+
+        return flattenObject(cleaned);
     });
 };
 

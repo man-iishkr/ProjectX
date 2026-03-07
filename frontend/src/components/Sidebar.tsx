@@ -33,6 +33,7 @@ interface SidebarProps {
 
 const defaultAdminItems = [
     { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Tour Approvals', path: '/admin/tour-approvals', icon: <Map className="h-4 w-4" /> },
     { label: 'Employees', path: '/admin/employees', icon: <Users className="h-4 w-4" /> },
     { label: 'Doctors', path: '/admin/doctors', icon: <Stethoscope className="h-4 w-4" /> },
     { label: 'Chemists', path: '/admin/chemists', icon: <FlaskConical className="h-4 w-4" /> },

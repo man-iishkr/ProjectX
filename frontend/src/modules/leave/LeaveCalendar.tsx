@@ -145,7 +145,7 @@ const LeaveCalendar: React.FC = () => {
 
                 <div className="flex gap-1 overflow-x-auto">
                     <TabButton id="calendar" label="Calendar" icon={CalendarIcon} />
-                    {(user?.role === 'employee' || user?.role === 'hq') && (
+                    {user?.role !== 'admin' && (
                         <TabButton id="my-leaves" label="My Leaves" icon={ClipboardList} />
                     )}
                     {user?.role === 'admin' && (

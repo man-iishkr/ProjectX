@@ -9,7 +9,8 @@ import {
     Target,
     PhoneCall,
     Receipt,
-    Calendar
+    Calendar,
+    Package
 } from 'lucide-react';
 
 const items = [
@@ -18,6 +19,8 @@ const items = [
     { label: 'My Target', path: '/employee/target', icon: <Target className="h-4 w-4" /> },
     { label: 'Call Report', path: '/employee/calls', icon: <PhoneCall className="h-4 w-4" /> },
     { label: 'Doctors', path: '/employee/doctors', icon: <User className="h-4 w-4" /> },
+    { label: 'Products', path: '/employee/inventory/products', icon: <Package className="h-4 w-4" /> },
+    { label: 'Tour Planner', path: '/employee/tour-planner', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Add Expense', path: '/employee/expenses', icon: <Receipt className="h-4 w-4" /> },
     { label: 'Leave Calendar', path: '/employee/leave', icon: <Calendar className="h-4 w-4" /> },
 ];

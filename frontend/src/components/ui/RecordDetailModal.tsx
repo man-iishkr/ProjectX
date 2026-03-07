@@ -12,9 +12,9 @@ const SKIP_FIELDS = new Set(['__v', 'password', 'token', 'resetPasswordToken', '
 
 // Fields to display as plain text even if ObjectId-like
 const LABEL_MAP: Record<string, string> = {
-    _id: 'ID',
+    _id: 'System ID',
     name: 'Name',
-    username: 'Username',
+    username: 'Employee ID',
     role: 'Role',
     designation: 'Designation',
     email: 'Email',
@@ -27,7 +27,11 @@ const LABEL_MAP: Record<string, string> = {
     reportingTo: 'Reporting To',
     state: 'State',
     division: 'Division',
-    monthlyPay: 'Monthly Pay',
+    'salaryDetails.basicPay': 'Basic Pay',
+    'salaryDetails.hra': 'HRA',
+    'allowanceRates.hqAllowance': 'HQ Allowance Limit',
+    'allowanceRates.xStationAllowance': 'X-Station Allowance Limit',
+    'allowanceRates.offStationAllowance': 'Off-Station Allowance Limit',
     staffType: 'Staff Type',
     code: 'Code',
     speciality: 'Speciality',
@@ -54,7 +58,7 @@ const LABEL_MAP: Record<string, string> = {
 // Define categorization rules
 const CATEGORIES = [
     { id: 'general', label: 'General Info', icon: User, keys: ['name', 'username', 'email', 'mobile', 'phone', 'dob', 'anniversary'] },
-    { id: 'professional', label: 'Professional', icon: Briefcase, keys: ['role', 'designation', 'staffType', 'monthlyPay', 'reportingTo', 'code', 'speciality', 'class', 'frequency', 'routeFrom', 'routeTo', 'employeeStrength', 'managerStrength', 'transitDays', 'contactPerson', 'contact'] },
+    { id: 'professional', label: 'Professional', icon: Briefcase, keys: ['role', 'designation', 'staffType', 'salaryDetails', 'allowanceRates', 'employeeInfo', 'reportingTo', 'code', 'speciality', 'class', 'frequency', 'routeFrom', 'routeTo', 'employeeStrength', 'managerStrength', 'transitDays', 'contactPerson', 'contact'] },
     { id: 'location', label: 'Location Details', icon: MapPin, keys: ['address', 'clinicAddress', 'residentialAddress', 'hq', 'state', 'division', 'areas', 'location'] },
     { id: 'system', label: 'System Info', icon: Settings, keys: ['_id', 'approvalStatus', 'createdAt', 'updatedAt', 'createdBy', 'resignationDate'] },
     { id: 'other', label: 'Other Details', icon: LayoutGrid, keys: [] } // Catch-all
@@ -63,16 +67,47 @@ const CATEGORIES = [
 const formatLabel = (key: string): string =>
     LABEL_MAP[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
 
-const formatValue = (value: any): string => {
+const formatValue = (value: any): React.ReactNode => {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (Array.isArray(value)) return value.map(v => formatValue(v)).join(', ');
+    if (Array.isArray(value)) {
+        return (
+            <div className="flex flex-wrap gap-1">
+                {value.map((v, i) => (
+                    <React.Fragment key={i}>
+                        <span>{formatValue(v)}</span>
+                        {i < value.length - 1 && <span className="text-muted-foreground mr-1">,</span>}
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+    }
     if (typeof value === 'object') {
+        if (React.isValidElement(value)) return value;
+        if (value.name && value.username) return `${value.name} (${value.username})`;
         if (value.name) return value.name;
+        if (value.username) return value.username;
         if (value.type === 'Point' && value.coordinates) {
             return `Lat: ${value.coordinates[1]}, Lng: ${value.coordinates[0]}`;
         }
-        return JSON.stringify(value);
+
+        return (
+            <div className="flex flex-col gap-1 w-full mt-2 mb-2 bg-slate-100/80 dark:bg-muted/50 rounded-lg p-3 border border-slate-300 dark:border-border shadow-sm">
+                {Object.entries(value).map(([k, v]) => {
+                    if (k === '_id' || k === '__v') return null;
+                    return (
+                        <div key={k} className="flex justify-between items-center text-sm py-1.5 border-b border-slate-200 dark:border-border/10 last:border-0">
+                            <span className="text-slate-600 dark:text-slate-400 font-medium capitalize">
+                                {k.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <span className="text-foreground border border-slate-200 dark:border-border px-2 py-1 bg-white dark:bg-muted/40 rounded shadow-sm text-right">
+                                {formatValue(v)}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
     }
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
         return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -150,8 +185,8 @@ const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, title = '
                                     key={cat.id}
                                     onClick={() => setActiveTab(cat.id)}
                                     className={`flex items-center sm:w-full px-4 sm:px-3 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                                            ? 'bg-white dark:bg-card text-primary shadow-sm ring-1 ring-border whitespace-nowrap'
-                                            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground whitespace-nowrap'
+                                        ? 'bg-white dark:bg-card text-primary shadow-sm ring-1 ring-border whitespace-nowrap'
+                                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground whitespace-nowrap'
                                         }`}
                                 >
                                     <Icon className={`h-4 w-4 sm:mr-3 mr-2 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />

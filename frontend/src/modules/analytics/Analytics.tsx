@@ -64,7 +64,7 @@ const Analytics: React.FC = () => {
         if (user) {
             if (user.role === 'hq') {
                 setSelectedHQ(user.hq?._id || user.hq || '');
-            } else if (user.role === 'employee') {
+            } else if (user.role === 'bde') {
                 setSelectedHQ(user.hq?._id || user.hq || '');
                 setSelectedEmployee(user._id);
             }
@@ -110,7 +110,7 @@ const Analytics: React.FC = () => {
     };
 
     const loadEmployeesForHQ = async () => {
-        if (user?.role === 'employee') {
+        if (user?.role === 'bde') {
             setEmployees([user]);
             return;
         }
@@ -272,7 +272,7 @@ const Analytics: React.FC = () => {
                         className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 disabled:opacity-50"
                         value={selectedHQ}
                         onChange={(e) => { setSelectedHQ(e.target.value); setSelectedEmployee(''); }}
-                        disabled={user?.role === 'hq' || user?.role === 'employee'}
+                        disabled={user?.role === 'hq' || user?.role === 'bde'}
                     >
                         <option value="">All HQs</option>
                         {hqs.map(hq => <option key={hq._id} value={hq._id}>{hq.name}</option>)}
@@ -283,7 +283,7 @@ const Analytics: React.FC = () => {
                             className="border rounded px-3 py-2 text-sm bg-background dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 disabled:opacity-50"
                             value={selectedEmployee}
                             onChange={(e) => setSelectedEmployee(e.target.value)}
-                            disabled={user?.role === 'employee'}
+                            disabled={user?.role === 'bde'}
                         >
                             <option value="">All Employees</option>
                             {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}

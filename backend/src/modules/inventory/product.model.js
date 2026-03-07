@@ -6,7 +6,10 @@ const ProductSchema = new mongoose.Schema({
         required: true
     },
     code: String,
-    unitPrice: Number,
+    slNo: String,
+    mrp: Number,
+    ptr: Number,
+    pts: Number,
     createdAt: {
         type: Date,
         default: Date.now

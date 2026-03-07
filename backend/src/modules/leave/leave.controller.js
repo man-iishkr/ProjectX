@@ -9,14 +9,14 @@ exports.getAllLeaves = async (req, res) => {
         let query = {};
 
         if (role === 'admin') {
-            // Admin sees all
-        } else if (role === 'bde') {
-            // BDE sees only their own
-            query.employee = _id;
+            // Admin sees all leaves; no filter needed
         } else {
-            // SM/RSM/ASM: see their subordinates' leaves
+            // Retrieve subordinate IDs using the authenticated user's ID
             const subordinateIds = await getSubordinateIds(_id, false);
-            query.employee = { $in: subordinateIds };
+
+            // Allow users to see their own leaves, AND their subordinates' leaves.
+            // Even if a BDE has 0 subordinates, they will still see their own.
+            query.employee = { $in: [_id, ...subordinateIds] };
         }
 
         const leaves = await Leave.find(query)
@@ -65,7 +65,7 @@ exports.createLeave = async (req, res) => {
         }
 
         const leave = new Leave({
-            employee: employeeId,
+            employee: employeeId || req.user._id,
             leaveType,
             startDate,
             endDate,

@@ -25,6 +25,8 @@ import CallReportList from './modules/callReport/CallReportList';
 import EmployeeProfile from './modules/employee/EmployeeProfile';
 import MyExpenses from './modules/expense/MyExpenses';
 import AddDoctor from './modules/doctor/AddDoctor';
+import TourPlanner from './modules/tourProgram/TourPlanner';
+import TourApproval from './modules/tourProgram/TourApproval';
 
 // Management roles (non-employee, non-admin)
 const MANAGER_ROLES = ['sm', 'rsm', 'asm'];
@@ -80,6 +82,7 @@ const App: React.FC = () => {
         <Route path="analytics" element={<Analytics />} />
         <Route path="stockists" element={<StockistList />} />
         <Route path="leave" element={<LeaveCalendar />} />
+        <Route path="tour-approvals" element={<TourApproval />} />
         <Route path="inventory/products" element={<ProductList />} />
         <Route path="inventory/stock" element={<InventoryList />} />
         <Route path="inventory" element={<InventoryList />} />
@@ -98,6 +101,7 @@ const App: React.FC = () => {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="profile" element={<EmployeeProfile />} />
         <Route path="employees" element={<EmployeeList />} />
+        <Route path="hqs" element={<HQList />} />
         <Route path="doctors" element={<DoctorList />} />
         <Route path="chemists" element={<ChemistList />} />
         <Route path="stockists" element={<StockistList />} />
@@ -106,9 +110,13 @@ const App: React.FC = () => {
         <Route path="inventory" element={<InventoryList />} />
         <Route path="expenses" element={<ExpenseList />} />
         <Route path="calls" element={<CallReportList />} />
+        <Route path="my-expenses" element={<MyExpenses />} />
         <Route path="leave" element={<LeaveCalendar />} />
+        <Route path="tour-planner" element={<TourPlanner />} />
+        <Route path="tour-approvals" element={<TourApproval />} />
         <Route path="salary" element={<SalaryList />} />
         <Route path="import" element={<DataImport />} />
+        <Route path="inventory/products" element={<ProductList />} />
       </Route>
 
       {/* EMPLOYEE ROUTES (BDE) */}
@@ -119,16 +127,24 @@ const App: React.FC = () => {
       }>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="profile" element={<EmployeeProfile />} />
+        <Route path="doctors" element={<DoctorList />} />
+        <Route path="chemists" element={<ChemistList />} />
+        <Route path="stockists" element={<StockistList />} />
+        <Route path="routing" element={<RoutingList />} />
         <Route path="target" element={<TargetList />} />
         <Route path="calls" element={<CallReportList />} />
         <Route path="add-doctor" element={<AddDoctor />} />
-        <Route path="doctors" element={<DoctorList />} />
-        <Route path="expenses" element={<MyExpenses />} />
+        <Route path="add-chemist" element={<AddDoctor />} />
+        <Route path="add-stockist" element={<AddDoctor />} />
+        <Route path="my-expenses" element={<MyExpenses />} />
         <Route path="leave" element={<LeaveCalendar />} />
+        <Route path="tour-planner" element={<TourPlanner />} />
         <Route path="import" element={<DataImport />} />
-        <Route path="*" element={<Dashboard />} /> {/* Fallback */}
+        <Route path="inventory/products" element={<ProductList />} />
       </Route>
 
+      {/* Catch-all Auth Redirection */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

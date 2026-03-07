@@ -5,6 +5,7 @@ const Chemist = require('../chemist/chemist.model');
 const HQ = require('../hq/hq.model');
 const Route = require('../route/route.model');
 const Stockist = require('../stockist/stockist.model');
+const Product = require('../inventory/product.model');
 
 // Map of dropdown values to Mongoose Models
 const MODEL_MAP = {
@@ -13,7 +14,8 @@ const MODEL_MAP = {
     'chemists': Chemist,
     'hqs': HQ,
     'routes': Route,
-    'stockists': Stockist
+    'stockists': Stockist,
+    'products': Product
 };
 
 // Helper to normalize header keys (used for auto-suggest)
@@ -23,47 +25,52 @@ const normalizeKey = (key) => {
 
 // Auto-suggest mapping (used by frontend for initial suggestion, not enforced server-side)
 const FIELD_MAPPINGS = {
-    'hq': 'hq', 'hqname': 'hq', 'headquarter': 'hq',
+    'hq': 'hq', 'hqname': 'hq', 'headquarter': 'hq', 'headquarters': 'hq', 'base': 'hq',
     'lat': 'latitude', 'latitude': 'latitude', 'locationlat': 'latitude',
     'lng': 'longitude', 'longitude': 'longitude', 'locationlng': 'longitude',
-    'mobileno': 'mobile', 'mobile': 'mobile', 'phone': 'phone',
+    'mobileno': 'mobile', 'mobile': 'mobile', 'phone': 'phone', 'contactno': 'mobile',
     'email': 'email', 'emailid': 'email',
-    'address': 'address', 'location': 'address',
-    'drname': 'name', 'doctorname': 'name', 'name': 'name',
-    'drcode': 'code', 'code': 'code',
+    'address': 'address', 'location': 'address', 'fulladdress': 'address',
+    'drname': 'name', 'doctorname': 'name', 'name': 'name', 'doctor': 'name',
+    'drcode': 'code', 'code': 'code', 'doctorcode': 'code',
     'routefrom': 'routeFrom', 'routeto': 'routeTo',
-    'clinicaddress': 'clinicAddress',
-    'residentialaddress': 'residentialAddress',
-    'speciality': 'speciality', 'specialization': 'speciality',
-    'class': 'class', 'category': 'class',
-    'frequency': 'frequency', 'visitfreq': 'frequency',
-    'dob': 'dob', 'dateofbirth': 'dob',
-    'anniversary': 'anniversary',
-    'chemistname': 'name', 'shopname': 'name',
-    'contactperson': 'contactPerson', 'ownername': 'contactPerson',
-    'employeename': 'name', 'empname': 'name',
-    'username': 'username', 'employeeid': 'username', 'empid': 'username',
-    'password': 'password',
-    'designation': 'designation', 'role': 'role',
-    'state': 'state', 'division': 'division',
-    'monthlypay': 'monthlyPay', 'salary': 'monthlyPay',
-    'stafftype': 'staffType',
-    'employeestrength': 'employeeStrength',
+    'clinicaddress': 'clinicAddress', 'clinic': 'clinicAddress',
+    'residentialaddress': 'residentialAddress', 'residence': 'residentialAddress',
+    'speciality': 'speciality', 'specialization': 'speciality', 'special': 'speciality',
+    'class': 'class', 'category': 'class', 'grade': 'class',
+    'frequency': 'frequency', 'visitfreq': 'frequency', 'visits': 'frequency',
+    'dob': 'dob', 'dateofbirth': 'dob', 'birthdate': 'dob',
+    'anniversary': 'anniversary', 'doa': 'anniversary',
+    'chemistname': 'name', 'shopname': 'name', 'chemist': 'name', 'pharmacy': 'name', 'store': 'name',
+    'contactperson': 'contactPerson', 'ownername': 'contactPerson', 'owner': 'contactPerson',
+    'employeename': 'name', 'empname': 'name', 'employee': 'name',
+    'username': 'username', 'employeeid': 'username', 'empid': 'username', 'loginid': 'username',
+    'password': 'password', 'pass': 'password',
+    'designation': 'designation', 'role': 'role', 'title': 'designation',
+    'state': 'state', 'division': 'division', 'region': 'state',
+    'monthlypay': 'monthlyPay', 'salary': 'monthlyPay', 'basicsalary': 'monthlyPay', 'pay': 'monthlyPay',
+    'stafftype': 'staffType', 'type': 'staffType',
+    'employeestrength': 'employeeStrength', 'strength': 'employeeStrength',
     'managerstrength': 'managerStrength',
-    'transitdays': 'transitDays',
-    'routename': 'name',
+    'transitdays': 'transitDays', 'transit': 'transitDays',
+    'routename': 'name', 'route': 'name',
     'routecode': 'code',
-    'areas': 'areas',
-    'stockistname': 'name',
+    'areas': 'areas', 'coveredareas': 'areas', 'towns': 'areas',
+    'stockistname': 'name', 'stockist': 'name', 'distributor': 'name', 'agency': 'name',
     'contact': 'contact',
-    'joiningdate': 'joiningDate',
-    'resignationdate': 'resignationDate',
-    'monthlypay': 'monthlyPay',
-    'aadharcard': 'aadharCard',
-    'pancard': 'panCard',
-    'pincode': 'pincode',
-    'city': 'city',
-    'mobile': 'mobile',
+    'joiningdate': 'joiningDate', 'doj': 'joiningDate', 'dateofjoining': 'joiningDate',
+    'resignationdate': 'resignationDate', 'dor': 'resignationDate',
+    'aadharcard': 'aadharCard', 'aadhar': 'aadharCard', 'uid': 'aadharCard', 'aadharno': 'aadharCard', 'aadharnumber': 'aadharCard',
+    'pancard': 'panCard', 'pan': 'panCard', 'panno': 'panCard', 'pannumber': 'panCard',
+    'pincode': 'pincode', 'pin': 'pincode', 'zip': 'pincode',
+    'city': 'city', 'town': 'city',
+    // Product Mapping aliases (Massive coverage to stop casting errors)
+    'slno': 'slNo', 'sl': 'slNo', 'serialno': 'slNo', 'srno': 'slNo', 'sno': 'slNo', 'sn': 'slNo', 'index': 'slNo', 'id': 'slNo', '#': 'slNo',
+    'productname': 'name', 'product': 'name', 'itemname': 'name', 'item': 'name', 'particulars': 'name', 'description': 'name', 'productdetails': 'name', 'details': 'name', 'brand': 'name', 'brandname': 'name',
+    'mrp': 'mrp', 'maximumretailprice': 'mrp', 'retailprice': 'mrp',
+    'ptr': 'ptr', 'pricetoretailer': 'ptr', 'retailerate': 'ptr',
+    'pts': 'pts', 'pricetostockist': 'pts', 'stockistrate': 'pts',
+    'packing': '__skip__', 'pack': '__skip__', 'size': '__skip__', 'unit': '__skip__', 'uom': '__skip__', 'composition': '__skip__', 'form': '__skip__'
 };
 
 // ── Role Normalization ─────────────────────────────────────────────────────────
@@ -138,7 +145,7 @@ const normalizeDoctorClass = (value) => {
 
 // ── Field-level Value Normalizer ───────────────────────────────────────────────
 // Numeric DB fields
-const NUMBER_FIELDS = new Set(['monthlyPay', 'employeeStrength', 'managerStrength', 'transitDays', 'frequency', 'latitude', 'longitude']);
+const NUMBER_FIELDS = new Set(['monthlyPay', 'employeeStrength', 'managerStrength', 'transitDays', 'frequency', 'latitude', 'longitude', 'mrp', 'ptr', 'pts']);
 // Date DB fields
 const DATE_FIELDS = new Set(['joiningDate', 'resignationDate', 'dob', 'anniversary', 'date', 'createdAt']);
 

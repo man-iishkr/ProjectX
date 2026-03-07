@@ -5,17 +5,24 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Plus, Pencil } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
+import { useAuth } from '../../context/AuthContext';
 
 const ProductList: React.FC = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
+
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
+        slNo: '',
         name: '',
         code: '',
-        unitPrice: ''
+        mrp: '',
+        ptr: '',
+        pts: ''
     });
 
     useEffect(() => {
@@ -40,16 +47,19 @@ const ProductList: React.FC = () => {
     };
 
     const openCreateModal = () => {
-        setFormData({ name: '', code: '', unitPrice: '' });
+        setFormData({ slNo: '', name: '', code: '', mrp: '', ptr: '', pts: '' });
         setIsEditing(false);
         setIsModalOpen(true);
     };
 
     const openEditModal = (product: any) => {
         setFormData({
+            slNo: product.slNo || '',
             name: product.name,
             code: product.code,
-            unitPrice: product.unitPrice
+            mrp: product.mrp || '',
+            ptr: product.ptr || '',
+            pts: product.pts || ''
         });
         setCurrentId(product._id);
         setIsEditing(true);
@@ -72,7 +82,7 @@ const ProductList: React.FC = () => {
 
             setIsModalOpen(false);
             loadData();
-            setFormData({ name: '', code: '', unitPrice: '' });
+            setFormData({ slNo: '', name: '', code: '', mrp: '', ptr: '', pts: '' });
         } catch (err) {
             console.error(err);
             alert('Operation failed');
@@ -85,24 +95,29 @@ const ProductList: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Product Management</h2>
-                <Button onClick={openCreateModal}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                </Button>
+                {isAdmin && (
+                    <Button onClick={openCreateModal}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Product
+                    </Button>
+                )}
             </div>
 
             <Table
                 data={products}
                 columns={[
+                    { header: 'SL No', accessor: 'slNo' },
                     { header: 'Name', accessor: 'name' },
                     { header: 'Code', accessor: 'code' },
-                    { header: 'Unit Price', accessor: (row) => `₹${row.unitPrice}` },
+                    { header: 'MRP', accessor: (row) => row.mrp ? `₹${row.mrp}` : '-' },
+                    { header: 'PTR', accessor: (row) => row.ptr ? `₹${row.ptr}` : '-' },
+                    { header: 'PTS', accessor: (row) => row.pts ? `₹${row.pts}` : '-' },
                 ]}
-                actions={(row) => (
+                actions={isAdmin ? (row) => (
                     <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
                         <Pencil className="h-4 w-4 text-blue-600" />
                     </Button>
-                )}
+                ) : undefined}
             />
 
             <Modal
@@ -112,6 +127,14 @@ const ProductList: React.FC = () => {
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">SL No</label>
+                        <Input
+                            name="slNo"
+                            value={formData.slNo}
+                            onChange={handleInputChange}
+                        />
+                    </div>
                     <div>
                         <label className="text-sm font-medium mb-1 block">Product Name</label>
                         <Input
@@ -132,14 +155,34 @@ const ProductList: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium mb-1 block">Unit Price (₹)</label>
+                        <label className="text-sm font-medium mb-1 block">MRP (₹)</label>
                         <Input
-                            name="unitPrice"
+                            name="mrp"
                             type="number"
-                            value={formData.unitPrice}
+                            value={formData.mrp}
                             onChange={handleInputChange}
-                            required
                         />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-sm font-medium mb-1 block">PTR (₹)</label>
+                            <Input
+                                name="ptr"
+                                type="number"
+                                value={formData.ptr}
+                                onChange={handleInputChange}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium mb-1 block">PTS (₹)</label>
+                            <Input
+                                name="pts"
+                                type="number"
+                                value={formData.pts}
+                                onChange={handleInputChange}
+                            />
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-2 mt-6">

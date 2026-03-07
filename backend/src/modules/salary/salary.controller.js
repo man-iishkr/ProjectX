@@ -143,30 +143,27 @@ exports.upsertSalary = async (req, res) => {
             'period.month': month
         };
 
-        // Use employee's current monthlyPay as baseSalary if not provided
-        const baseSalary = employee.monthlyPay || 0;
+        let salary = await Salary.findOne(filter);
 
-        const update = {
-            employee: employeeId,
-            period: { year, month },
-            baseSalary,
-            allowances: allowances || {},
-            deductions: deductions || {},
-            bonuses: bonuses || {},
-            approvedExpenses: totalApprovedExpenses,
-            workingDays: workingDays || {},
-            paymentStatus: paymentStatus || 'pending',
-            paymentDate,
-            paymentMethod,
-            transactionId,
-            notes
-        };
+        if (!salary) {
+            salary = new Salary(filter);
+        }
 
-        const salary = await Salary.findOneAndUpdate(
-            filter,
-            update,
-            { new: true, upsert: true, runValidators: true }
-        ).populate('employee', 'name email employeeId designation');
+        salary.earnings = allowances?.earnings || {};
+        // The frontend will send the combined object. We map carefully.
+        // But for generic upserts, let's map what we expect from the frontend soon.
+        salary.deductions = deductions || {};
+        salary.bonuses = bonuses || {};
+        salary.approvedExpenses = totalApprovedExpenses;
+        salary.workingDays = workingDays || salary.workingDays || {};
+        salary.paymentStatus = paymentStatus || 'pending';
+        salary.paymentDate = paymentDate;
+        salary.paymentMethod = paymentMethod;
+        salary.transactionId = transactionId;
+        salary.notes = notes;
+
+        await salary.save(); // This explicitly triggers the LOP pre('save') hook
+        await salary.populate('employee', 'name email employeeId designation');
 
         res.json({ message: 'Salary record saved', salary });
     } catch (error) {

@@ -39,12 +39,12 @@ const Dashboard: React.FC = () => {
     // Employee specific state
     const [trendData, setTrendData] = useState<any>(null);
 
-    const isEmployee = user?.role === 'employee';
+    const isEmployee = user?.role === 'bde';
 
     const loadSummary = async () => {
         try {
             const params: any = {};
-            if (user?.role === 'employee') {
+            if (user?.role === 'bde') {
                 params.employeeId = user._id;
             } else if (user?.role === 'hq') {
                 params.hqId = user.hq?._id || user.hq;
@@ -80,7 +80,7 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         if (user) {
             loadSummary();
-            if (user.role === 'employee') {
+            if (user.role === 'bde') {
                 loadEmployeeStats();
             }
         }

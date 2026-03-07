@@ -167,8 +167,8 @@ const EmployeeProfile: React.FC = () => {
                                 <span className="font-semibold capitalize text-foreground">{user.role}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-500 dark:text-muted-foreground">Monthly Pay (Base)</span>
-                                <span className="font-semibold text-foreground">₹{user.monthlyPay?.toLocaleString() || 'N/A'}</span>
+                                <span className="text-slate-500 dark:text-muted-foreground">Basic Pay (Per Month)</span>
+                                <span className="font-semibold text-foreground">₹{user.salaryDetails?.basicPay?.toLocaleString() || '0'}</span>
                             </div>
                         </div>
                     </CardContent>
