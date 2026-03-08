@@ -20,14 +20,11 @@ const SalarySchema = new mongoose.Schema({
         basicPay: { type: Number, default: 0 },
         eduAllow: { type: Number, default: 0 },
         conveyance: { type: Number, default: 0 },
-        medical: { type: Number, default: 0 },
         splAllow: { type: Number, default: 0 },
         vme: { type: Number, default: 0 },
-        hra: { type: Number, default: 0 },
-        lta: { type: Number, default: 0 }
+        hra: { type: Number, default: 0 }
     },
     deductions: {
-        gpa: { type: Number, default: 0 },
         pf: { type: Number, default: 0 },
         lop: { type: Number, default: 0 } // Loss of Pay deduction
     },
@@ -82,17 +79,14 @@ SalarySchema.virtual('totalEarnings').get(function () {
     return (this.earnings?.basicPay || 0) +
         (this.earnings?.eduAllow || 0) +
         (this.earnings?.conveyance || 0) +
-        (this.earnings?.medical || 0) +
         (this.earnings?.splAllow || 0) +
         (this.earnings?.vme || 0) +
-        (this.earnings?.hra || 0) +
-        (this.earnings?.lta || 0);
+        (this.earnings?.hra || 0);
 });
 
 // Virtual for Deductions
 SalarySchema.virtual('totalDeductions').get(function () {
-    return (this.deductions?.gpa || 0) +
-        (this.deductions?.pf || 0) +
+    return (this.deductions?.pf || 0) +
         (this.deductions?.lop || 0);
 });
 

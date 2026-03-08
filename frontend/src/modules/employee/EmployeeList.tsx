@@ -53,7 +53,7 @@ const EmployeeList: React.FC = () => {
         division: '',
         staffType: '',
         salaryDetails: {
-            basicPay: '', eduAllow: '', conveyance: '', medical: '', splAllow: '', vme: '', hra: '', lta: '', pf: '', gpa: ''
+            basicPay: '', eduAllow: '', conveyance: '', splAllow: '', vme: '', hra: '', pf: ''
         },
         allowanceRates: {
             hqAllowance: '', xStationAllowance: '', offStationAllowance: ''
@@ -177,13 +177,10 @@ const EmployeeList: React.FC = () => {
                 basicPay: employee.salaryDetails?.basicPay || '',
                 eduAllow: employee.salaryDetails?.eduAllow || '',
                 conveyance: employee.salaryDetails?.conveyance || '',
-                medical: employee.salaryDetails?.medical || '',
                 splAllow: employee.salaryDetails?.splAllow || '',
                 vme: employee.salaryDetails?.vme || '',
                 hra: employee.salaryDetails?.hra || '',
-                lta: employee.salaryDetails?.lta || '',
-                pf: employee.salaryDetails?.pf || '',
-                gpa: employee.salaryDetails?.gpa || ''
+                pf: employee.salaryDetails?.pf || ''
             },
             allowanceRates: {
                 hqAllowance: employee.allowanceRates?.hqAllowance || '',
@@ -473,10 +470,8 @@ const EmployeeList: React.FC = () => {
                         { label: 'H.R.A.', name: 'hra' },
                         { label: 'Edu Allowance', name: 'eduAllow' },
                         { label: 'Conveyance', name: 'conveyance' },
-                        { label: 'Medical', name: 'medical' },
                         { label: 'Special Allowance', name: 'splAllow' },
                         { label: 'VME', name: 'vme' },
-                        { label: 'LTA', name: 'lta' },
                     ].map(field => (
                         <div key={field.name}>
                             <label className="text-sm font-medium mb-1 block">{field.label}</label>
@@ -493,7 +488,6 @@ const EmployeeList: React.FC = () => {
                     <div className="md:col-span-3 lg:col-span-3 font-semibold text-lg border-b pb-1 mb-2 mt-4 text-destructive">Reductions / Deductions</div>
                     {[
                         { label: 'Provident Fund (PF)', name: 'pf' },
-                        { label: 'GPA', name: 'gpa' },
                     ].map(field => (
                         <div key={field.name}>
                             <label className="text-sm font-medium mb-1 block text-destructive">{field.label}</label>

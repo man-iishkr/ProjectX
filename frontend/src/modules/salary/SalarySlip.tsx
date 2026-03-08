@@ -35,7 +35,7 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
             getSettings().then(data => {
                 setCompanyInfo({
                     name: data.COMPANY_NAME || 'Maneesh Pharmaceuticals Ltd.',
-                    address: data.COMPANY_ADDRESS || 'Govandi, Mumbai - 400 043. Maharashtra, India.'
+                    address: ''
                 });
             });
         }
@@ -98,7 +98,6 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
                         <div className="flex justify-between items-start mb-6 border-b-2 border-slate-800 pb-4">
                             <div className="flex-1">
                                 <h1 className="text-2xl font-bold uppercase tracking-tight text-[#0a3055]">{companyInfo.name}</h1>
-                                <p className="text-sm font-medium mt-1 text-slate-700">{companyInfo.address}</p>
                             </div>
                             <div className="flex flex-col items-end">
                                 <img src="/logo.png" alt="Company Logo" className="h-16 object-contain mb-2" />
@@ -207,44 +206,32 @@ const SalarySlip: React.FC<SalarySlipProps> = ({ isOpen, onClose, salary }) => {
                                 {/* Row 2 */}
                                 <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">H.R.A.</div>
                                 <div className="border-b border-r border-slate-300 p-2 text-right bg-slate-50">{salary.earnings?.hra?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">G.P.A.</div>
-                                <div className="border-b border-slate-300 p-2 text-right bg-slate-50">{salary.deductions?.gpa?.toLocaleString() || 0}</div>
+                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50 text-red-600 text-xs flex items-center">Loss of Pay ({salary.workingDays?.absent || 0} Days)</div>
+                                <div className="border-b border-slate-300 p-2 text-right bg-slate-50 text-red-600">{salary.deductions?.lop?.toLocaleString() || 0}</div>
 
                                 {/* Row 3 */}
                                 <div className="border-b border-r border-slate-300 p-2 pl-3">EDU. ALLOWANCE</div>
                                 <div className="border-b border-r border-slate-300 p-2 text-right">{salary.earnings?.eduAllow?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 text-red-600 text-xs flex items-center">Loss of Pay ({salary.workingDays?.absent || 0} Days)</div>
-                                <div className="border-b border-slate-300 p-2 text-right text-red-600">{salary.deductions?.lop?.toLocaleString() || 0}</div>
+                                <div className="border-b border-r border-slate-300 p-2 pl-3">PROF. TAX (If Any)</div>
+                                <div className="border-b border-slate-300 p-2 text-right">{salary.deductions?.tax?.toLocaleString() || 0}</div>
 
                                 {/* Row 4 */}
                                 <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">CONVEYANCE</div>
                                 <div className="border-b border-r border-slate-300 p-2 text-right bg-slate-50">{salary.earnings?.conveyance?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">PROF. TAX (If Any)</div>
-                                <div className="border-b border-slate-300 p-2 text-right bg-slate-50">{salary.deductions?.tax?.toLocaleString() || 0}</div>
+                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">TDS / INSURANCE</div>
+                                <div className="border-b border-slate-300 p-2 text-right bg-slate-50">{salary.deductions?.insurance?.toLocaleString() || 0}</div>
 
                                 {/* Row 5 */}
-                                <div className="border-b border-r border-slate-300 p-2 pl-3">MEDICAL</div>
-                                <div className="border-b border-r border-slate-300 p-2 text-right">{salary.earnings?.medical?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2 pl-3">TDS / INSURANCE</div>
-                                <div className="border-b border-slate-300 p-2 text-right">{salary.deductions?.insurance?.toLocaleString() || 0}</div>
-
-                                {/* Row 6 */}
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">SPL. ALLOWANCE</div>
-                                <div className="border-b border-r border-slate-300 p-2 text-right bg-slate-50">{salary.earnings?.splAllow?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50"></div>
-                                <div className="border-b border-slate-300 p-2 bg-slate-50"></div>
-
-                                {/* Row 7 */}
-                                <div className="border-b border-r border-slate-300 p-2 pl-3">VME</div>
-                                <div className="border-b border-r border-slate-300 p-2 text-right">{salary.earnings?.vme?.toLocaleString() || 0}</div>
-                                <div className="border-b border-r border-slate-300 p-2"></div>
+                                <div className="border-b border-r border-slate-300 p-2 pl-3">SPL. ALLOWANCE</div>
+                                <div className="border-b border-r border-slate-300 p-2 text-right">{salary.earnings?.splAllow?.toLocaleString() || 0}</div>
+                                <div className="border-b border-r border-slate-300 p-2 pl-3"></div>
                                 <div className="border-b border-slate-300 p-2 text-right"></div>
 
-                                {/* Row 8 */}
-                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">LTA</div>
-                                <div className="border-b border-r border-slate-300 p-2 text-right bg-slate-50">{salary.earnings?.lta?.toLocaleString() || 0}</div>
+                                {/* Row 6 */}
+                                <div className="border-b border-r border-slate-300 p-2 pl-3 bg-slate-50">VME</div>
+                                <div className="border-b border-r border-slate-300 p-2 text-right bg-slate-50">{salary.earnings?.vme?.toLocaleString() || 0}</div>
                                 <div className="border-b border-r border-slate-300 p-2 bg-slate-50"></div>
-                                <div className="border-b border-slate-300 p-2 bg-slate-50"></div>
+                                <div className="border-b border-slate-300 p-2 text-right bg-slate-50"></div>
 
                                 {/* Empty Fillers */}
                                 <div className="border-b border-r border-slate-300 p-2 pl-3 h-8"></div>
