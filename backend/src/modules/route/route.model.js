@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const RouteSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please add a route name'],
         trim: true
     },
     code: {
@@ -12,8 +11,7 @@ const RouteSchema = new mongoose.Schema({
     },
     hq: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'HQ',
-        required: [true, 'Please add an HQ']
+        ref: 'HQ'
     },
     areas: {
         type: [String], // Array of area names
@@ -25,8 +23,7 @@ const RouteSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     createdAt: {
         type: Date,

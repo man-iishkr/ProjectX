@@ -5,16 +5,15 @@ const jwt = require('jsonwebtoken');
 const UserSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please add a name']
+        trim: true
     },
     username: { // Employee ID or unique username
         type: String,
-        required: [true, 'Please add a username'],
-        unique: true
+        unique: true,
+        sparse: true // Allow multiple null values during bulk import
     },
     password: {
         type: String,
-        required: [true, 'Please add a password'],
         minlength: 6,
         select: false
     },

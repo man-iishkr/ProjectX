@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const HQSchema = new mongoose.Schema({
     name: { // e.g., "Delhi HQ"
         type: String,
-        required: [true, 'Please add a HQ name'],
-        unique: true
+        unique: true,
+        sparse: true // Allow null values during bulk import
     },
     location: {
         type: String, // String Address

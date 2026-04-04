@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const DoctorSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please add a doctor name'],
         trim: true
     },
     code: {
@@ -11,24 +10,20 @@ const DoctorSchema = new mongoose.Schema({
         trim: true
     },
     routeFrom: {
-        type: String,
-        required: [true, 'Please add route start']
+        type: String
     },
     routeTo: {
-        type: String,
-        required: [true, 'Please add route end']
+        type: String
     },
     date: {
         type: Date,
         default: Date.now
     },
     area: {
-        type: String,
-        required: [true, 'Please add an area']
+        type: String
     },
     speciality: {
-        type: String,
-        required: [true, 'Please add speciality']
+        type: String
     },
     products: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -36,12 +31,10 @@ const DoctorSchema = new mongoose.Schema({
     }],
     hq: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'HQ',
-        required: true
+        ref: 'HQ'
     },
     clinicAddress: {
-        type: String,
-        required: [true, 'Please add clinic address'] // Full formatted address
+        type: String
     },
     city: String,
     state: String,
@@ -59,8 +52,7 @@ const DoctorSchema = new mongoose.Schema({
         default: 1
     },
     mobile: {
-        type: String,
-        required: [true, 'Please add mobile number']
+        type: String
     },
     phone: String,
     email: String,
@@ -114,8 +106,7 @@ const DoctorSchema = new mongoose.Schema({
 
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     createdAt: {
         type: Date,

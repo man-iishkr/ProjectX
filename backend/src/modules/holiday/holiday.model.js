@@ -3,13 +3,12 @@ const mongoose = require('mongoose');
 const HolidaySchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please add a holiday name'],
         trim: true
     },
     date: {
         type: Date,
-        required: [true, 'Please add a date'],
-        unique: true
+        unique: true,
+        sparse: true // Allow null values during bulk import
     },
     description: {
         type: String,

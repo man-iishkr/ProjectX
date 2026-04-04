@@ -344,19 +344,20 @@ exports.importData = async (req, res, next) => {
                 mappedData['areas'] = mappedData['areas'].split(',').map(s => s.trim());
             }
 
-            // Add fallbacks for doctors if omitted in Excel to pass strict validation
-            if (type === 'doctors') {
-                if (!mappedData.routeFrom) mappedData.routeFrom = 'N/A';
-                if (!mappedData.routeTo) mappedData.routeTo = 'N/A';
-                if (!mappedData.clinicAddress) mappedData.clinicAddress = 'N/A';
-                if (!mappedData.mobile) mappedData.mobile = '0000000000';
-                if (!mappedData.area) mappedData.area = 'N/A';
-                if (!mappedData.speciality) mappedData.speciality = 'N/A';
-
+            // Distance sanity check for doctors
+            if (type === 'doctors' && mappedData.distance !== undefined) {
                 const offStationLimit = Number(process.env.OFF_STATION_LIMIT_KM) || 150;
-                if (mappedData.distance !== undefined && mappedData.distance > offStationLimit) {
+                if (mappedData.distance > offStationLimit) {
                     rowWarnings.push(`Distance ${mappedData.distance}km exceeds off-station limit (${offStationLimit}km) — reset to 0`);
                     mappedData.distance = 0;
+                }
+            }
+
+            // Strip empty strings so they become null/undefined in MongoDB
+            // This prevents unique index violations on fields like username, email, etc.
+            for (const key of Object.keys(mappedData)) {
+                if (mappedData[key] === '' || mappedData[key] === undefined) {
+                    delete mappedData[key];
                 }
             }
 

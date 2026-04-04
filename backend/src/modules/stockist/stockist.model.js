@@ -2,13 +2,11 @@ const mongoose = require('mongoose');
 
 const StockistSchema = new mongoose.Schema({
     name: {
-        type: String,
-        required: true
+        type: String
     },
     hq: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'HQ',
-        required: true
+        ref: 'HQ'
     },
     code: String,
     address: String,

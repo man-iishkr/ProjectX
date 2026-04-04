@@ -3,40 +3,33 @@ const mongoose = require('mongoose');
 const ChemistSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please add a chemist name'],
         trim: true
     },
     contactPerson: {
         type: String,
-        required: [true, 'Please add a contact person name'],
         trim: true
     },
     hq: {
         type: mongoose.Schema.Types.ObjectId, // Chemist belongs to an HQ area
-        ref: 'HQ',
-        required: true
+        ref: 'HQ'
     },
     address: {
-        type: String,
-        required: [true, 'Please add address']
+        type: String
     },
     location: {
         // GeoJSON Point
         type: {
             type: String,
-            enum: ['Point'],
-            required: true
+            enum: ['Point']
         },
         coordinates: {
             type: [Number], // [longitude, latitude]
-            required: true,
             index: '2dsphere'
         }
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     phone: String,
     email: String,
