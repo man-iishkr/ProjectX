@@ -1,140 +1,132 @@
-<![CDATA[<div align="center">
-
 # 🏢 ProjectX — Field Force ERP
 
-**A full-stack Enterprise Resource Planning system built for pharmaceutical field operations.**
+**A full-stack Enterprise Resource Planning (ERP) system for pharmaceutical field operations.**
 
-[![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)](LICENSE)
-
-</div>
+![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)
 
 ---
 
 ## 📖 Overview
 
-ProjectX is a comprehensive Field Force ERP designed for **pharmaceutical companies** to manage their on-ground sales operations end-to-end. It provides role-based dashboards for administrators, managers (SM / RSM / ASM), and field employees (BDE) — covering everything from doctor & chemist management to expense tracking, salary processing, and GPS-powered route analytics.
+**ProjectX** is a comprehensive **Field Force ERP platform** designed for pharmaceutical companies to manage on-ground sales operations efficiently.
+
+It provides:
+
+- Role-based dashboards (Admin, Managers, Employees)
+- Doctor & chemist management
+- Expense & payroll automation
+- Tour planning and approvals
+- GPS-based route analytics
 
 ---
 
 ## ✨ Key Features
 
 | Module | Description |
-|---|---|
-| **Authentication & RBAC** | JWT-based auth with role-based access control (Admin, SM, RSM, ASM, BDE) |
-| **Employee Management** | Full employee lifecycle — onboarding, profiles, designation hierarchy |
-| **Doctor & Chemist Registry** | Manage doctor/chemist databases with field-level association |
-| **Call Reports** | Daily Medical Representative (MR) call logging with collaborative reporting |
-| **Expense Management** | Submit, approve, and track travel & daily allowances with auto-calculations |
-| **Salary & Payroll** | Per-employee salary structures, deductions, and payslip generation |
-| **Leave Management** | Apply for leaves, manager approvals, and a shared leave calendar |
-| **Tour Programs** | Plan and get approval for weekly/monthly tour schedules |
-| **Inventory & Products** | Track product catalogue and stockist-level inventory |
-| **Targets & Analytics** | Set and monitor monthly sales targets with visual analytics dashboards |
-| **Route & HQ Management** | Manage headquarters, field routes, and station classifications |
-| **Stockist Operations** | Manage stockist-target mapping and distribution tracking |
-| **Notifications** | In-app notification system for approvals, updates, and alerts |
-| **MapmyIndia / Mappls** | Geolocation services — reverse geocoding, address search, distance calculations |
-| **Admin Tools** | Bulk data import via Excel (XLSX) |
-| **Holiday Calendar** | Company-wide holiday management |
+|--------|------------|
+| 🔐 Authentication & RBAC | JWT-based authentication with role hierarchy |
+| 👥 Employee Management | Full lifecycle management with designation hierarchy |
+| 🏥 Doctor & Chemist Registry | Maintain field-linked medical contacts |
+| 📋 Call Reports | Daily MR activity logging |
+| 💰 Expense Management | Automated TA/DA calculation and approvals |
+| 🧾 Salary & Payroll | Salary structure, deductions, payslips |
+| 🌴 Leave Management | Requests, approvals, shared calendar |
+| 🗺️ Tour Programs | Weekly/monthly route planning |
+| 📦 Inventory & Products | Product catalog + stock tracking |
+| 🎯 Targets & Analytics | Performance dashboards |
+| 📍 Route & HQ Management | Field mapping and classification |
+| 🏪 Stockist Operations | Distribution tracking |
+| 🔔 Notifications | Real-time alerts |
+| 🌐 Mappls Integration | Geolocation + distance calculation |
+| 📊 Admin Tools | Bulk Excel import/export |
+| 📅 Holiday Calendar | Organization-wide scheduling |
 
 ---
 
 ## 🏗️ Architecture
 
-```
+```bash
 ProjectX/
-├── backend/              # Express.js REST API (Node.js)
+├── backend/
 │   ├── src/
-│   │   ├── config/       # Database & service configurations
-│   │   ├── core/         # Error handler, response utilities
-│   │   ├── middleware/    # Auth, caching (Redis), file upload
-│   │   ├── modules/      # Feature modules (19 modules)
-│   │   │   ├── auth/
-│   │   │   ├── employee/
-│   │   │   ├── doctor/
-│   │   │   ├── chemist/
-│   │   │   ├── callReport/
-│   │   │   ├── expense/
-│   │   │   ├── salary/
-│   │   │   ├── leave/
-│   │   │   ├── tourProgram/
-│   │   │   ├── inventory/
-│   │   │   ├── target/
-│   │   │   ├── analytics/
-│   │   │   ├── stockist/
-│   │   │   ├── route/
-│   │   │   ├── hq/
-│   │   │   ├── holiday/
-│   │   │   ├── notification/
-│   │   │   ├── mappls/
-│   │   │   └── admin-tools/
-│   │   ├── utils/        # Shared helpers
-│   │   ├── app.js        # Express app setup
-│   │   └── server.js     # Entry point
+│   │   ├── config/
+│   │   ├── core/
+│   │   ├── middleware/
+│   │   ├── modules/
+│   │   ├── utils/
+│   │   ├── app.js
+│   │   └── server.js
 │   └── Dockerfile
 │
-├── frontend/             # React 19 SPA (Vite + TypeScript)
+├── frontend/
 │   ├── src/
-│   │   ├── api/          # Axios API client layer
-│   │   ├── auth/         # Login pages (Admin & Employee)
-│   │   ├── components/   # Shared UI components
-│   │   ├── context/      # React Context (Auth, etc.)
-│   │   ├── hooks/        # Custom React hooks
-│   │   ├── layouts/      # Admin / Manager / Employee layouts
-│   │   ├── modules/      # Feature pages (17 modules)
-│   │   ├── lib/          # Utility libraries
-│   │   └── utils/        # Helpers & formatters
+│   │   ├── api/
+│   │   ├── auth/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── modules/
+│   │   ├── lib/
+│   │   └── utils/
 │   └── Dockerfile
 │
-├── docker-compose.yml    # Multi-container orchestration
-├── nginx.conf            # Nginx reverse proxy config
-└── package.json          # Root workspace scripts
+├── docker-compose.yml
+├── nginx.conf
+└── package.json
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Backend
-| Technology | Purpose |
-|---|---|
-| **Express.js 5** | REST API framework |
-| **MongoDB + Mongoose 9** | Database & ODM |
-| **Redis** | Caching layer |
-| **JWT (jsonwebtoken)** | Stateless authentication |
-| **bcryptjs** | Password hashing |
-| **Helmet** | HTTP security headers |
-| **express-rate-limit** | API rate limiting |
-| **Multer** | File uploads |
-| **Winston** | Structured logging |
-| **XLSX** | Excel import/export |
-| **Mappls (MapmyIndia)** | Geolocation & geocoding |
+### 🔙 Backend
 
-### Frontend
 | Technology | Purpose |
-|---|---|
-| **React 19** | UI library |
-| **TypeScript** | Type safety |
-| **Vite 7** | Build tool & dev server |
-| **Tailwind CSS 4** | Utility-first styling |
-| **React Router 7** | Client-side routing |
-| **TanStack React Query** | Server state management |
-| **Axios** | HTTP client |
-| **Chart.js + react-chartjs-2** | Data visualization |
-| **FullCalendar** | Calendar views |
-| **Lucide React** | Icon library |
-| **Three.js** | 3D rendering (dashboard effects) |
+|------------|--------|
+| Express.js 5 | REST API |
+| MongoDB + Mongoose | Database |
+| Redis | Caching |
+| JWT | Authentication |
+| bcryptjs | Password hashing |
+| Helmet | Security |
+| express-rate-limit | API protection |
+| Multer | File uploads |
+| Winston | Logging |
+| XLSX | Excel handling |
+| Mappls API | Geolocation |
 
-### Infrastructure
+---
+
+### 🎨 Frontend
+
 | Technology | Purpose |
-|---|---|
-| **Docker + Docker Compose** | Containerized deployment |
-| **Nginx** | Reverse proxy & static file serving |
-| **MongoDB Atlas** | Managed cloud database |
+|------------|--------|
+| React 19 | UI |
+| TypeScript | Type safety |
+| Vite | Build tool |
+| Tailwind CSS | Styling |
+| React Router | Routing |
+| React Query | Server state |
+| Axios | API calls |
+| Chart.js | Analytics |
+| FullCalendar | Scheduling |
+| Lucide | Icons |
+| Three.js | Visual effects |
+
+---
+
+### 🚀 Infrastructure
+
+| Technology | Purpose |
+|------------|--------|
+| Docker + Compose | Containerization |
+| Nginx | Reverse proxy |
+| MongoDB Atlas | Cloud DB |
 
 ---
 
@@ -142,198 +134,179 @@ ProjectX/
 
 ### Prerequisites
 
-- **Node.js** ≥ 18.x
-- **npm** ≥ 9.x
-- **MongoDB** (local instance or [MongoDB Atlas](https://www.mongodb.com/atlas))
-- **Redis** (optional for development, required in production)
+- Node.js ≥ 18  
+- npm ≥ 9  
+- MongoDB (local or Atlas)  
+- Redis (optional for dev, required in production)
 
-### 1. Clone the Repository
+---
+
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/your-username/ProjectX.git
 cd ProjectX
 ```
 
-### 2. Environment Variables
+---
 
-Create a `.env` file in the **project root** (used by `docker-compose`) and in `backend/`:
+### 2. Environment Setup
+
+#### Root & Backend `.env`
 
 ```env
-# Server
 PORT=5000
 NODE_ENV=development
 
-# Database
 MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<dbname>
 
-# Authentication
-JWT_SECRET=your_jwt_secret_here
+JWT_SECRET=your_secret
 JWT_EXPIRE=30d
 
-# Redis (Docker)
-REDIS_URL=redis://:your_redis_password@redis:6379
+REDIS_URL=redis://:password@redis:6379
 
-# MapmyIndia / Mappls API
-MAPPLS_CLIENT_ID=your_mappls_client_id
-MAPPLS_CLIENT_SECRET=your_mappls_client_secret
+MAPPLS_CLIENT_ID=xxx
+MAPPLS_CLIENT_SECRET=xxx
 
-# API Security
-API_AUTH_KEY=your_secure_api_key
+API_AUTH_KEY=secure_key
 
-# Business Configuration
-TA_RATE_PER_KM=2.5
-ATTENDANCE_DISTANCE_THRESHOLD_METERS=100
-HQ_ALLOWANCE_PER_DAY=150
-X_STATION_LIMIT_KM=50
-X_STATION_ALLOWANCE_PER_DAY=250
-OFF_STATION_LIMIT_KM=100
-OFF_STATION_ALLOWANCE_PER_DAY=300
+TA_RATE_PER_KM=XX
+ATTENDANCE_DISTANCE_THRESHOLD_METERS=XX
+HQ_ALLOWANCE_PER_DAY=XX
+X_STATION_LIMIT_KM=XX
+X_STATION_ALLOWANCE_PER_DAY=XX
+OFF_STATION_LIMIT_KM=XX
+OFF_STATION_ALLOWANCE_PER_DAY=XX
 ```
 
-Create a `.env` file in `frontend/`:
+#### Frontend `.env`
 
 ```env
 VITE_API_URL=http://localhost:5000
 ```
 
+---
+
 ### 3. Install Dependencies
 
 ```bash
-# Install all dependencies (backend + frontend)
 npm run install-all
 ```
 
-### 4. Start Development Servers
+---
+
+### 4. Run Development Servers
 
 ```bash
-# Start both backend & frontend concurrently
 npm run dev
 ```
 
 | Service | URL |
-|---|---|
-| Frontend (Vite) | `http://localhost:5173` |
-| Backend API | `http://localhost:5000` |
-| API Health Check | `http://localhost:5000/api/v1/settings` |
+|--------|-----|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:5000 |
+| Health Check | http://localhost:5000/api/v1/settings |
 
 ---
 
 ## 🐳 Docker Deployment
 
-The project includes a production-ready Docker Compose setup with three services:
-
-| Service | Container | Description |
-|---|---|---|
-| `backend` | `erp_backend` | Node.js API server (port 5000, internal only) |
-| `redis` | `erp_redis` | Redis cache with password auth |
-| `nginx` | `erp_nginx` | Nginx reverse proxy serving frontend + proxying API |
-
 ### Build & Run
 
 ```bash
-# Build and start all services
 docker-compose up -d --build
+```
 
-# View logs
+### View Logs
+
+```bash
 docker-compose logs -f
+```
 
-# Stop all services
+### Stop Services
+
+```bash
 docker-compose down
 ```
 
-The application will be available at `http://localhost:80`.
+👉 Application runs at: **http://localhost**
 
-> **Note:** The backend is **not** directly exposed to the host — all API traffic routes through Nginx with API key validation via the `x-api-key` header.
+> Backend is not exposed publicly. All API traffic flows through **Nginx with API key validation**.
 
 ---
 
 ## 🔐 Role-Based Access
 
-The system implements a **designation-based reporting hierarchy**:
-
 ```
-Super Admin (admin)
-    └── SM (State Manager)
-          └── RSM (Regional Sales Manager)
-                └── ASM (Area Sales Manager)
-                      └── BDE (Business Development Executive)
+Admin
+ └── SM
+      └── RSM
+           └── ASM
+                └── BDE
 ```
 
-| Role | Dashboard | Key Capabilities |
-|---|---|---|
-| **Admin** | `/admin/dashboard` | Full access — employees, payroll, analytics, imports, approvals |
-| **SM / RSM / ASM** | `/manager/dashboard` | Team oversight, expense & leave approvals, call monitoring, tour approvals |
-| **BDE** | `/employee/dashboard` | Daily calls, personal expenses, tour planning, doctor/chemist management |
+| Role | Access |
+|------|--------|
+| Admin | Full control |
+| SM / RSM / ASM | Team management & approvals |
+| BDE | Field operations |
 
 ---
 
 ## 📡 API Structure
 
-All API endpoints follow the pattern: `/api/v1/<resource>`
+Base format:
 
-| Endpoint | Module |
-|---|---|
-| `/api/v1/auth` | Authentication (login, register, token refresh) |
-| `/api/v1/employees` | Employee CRUD & profiles |
-| `/api/v1/doctors` | Doctor management |
-| `/api/v1/chemists` | Chemist management |
-| `/api/v1/call-reports` | Daily call/visit logging |
-| `/api/v1/expenses` | Expense submission & approvals |
-| `/api/v1/salary` | Salary computation & payslips |
-| `/api/v1/leaves` | Leave requests & approvals |
-| `/api/v1/tour-programs` | Tour planning & approvals |
-| `/api/v1/inventory` | Product & stock management |
-| `/api/v1/stockists` | Stockist management |
-| `/api/v1/operations` | Stockist-target operations |
-| `/api/v1/routes` | Route management |
-| `/api/v1/hqs` | Headquarters management |
-| `/api/v1/analytics` | Reporting & analytics |
-| `/api/v1/holidays` | Holiday calendar |
-| `/api/v1/notifications` | Notification system |
-| `/api/v1/mappls` | Geolocation services |
-| `/api/v1/admin` | Admin tools (bulk import) |
-| `/api/v1/settings` | Company settings |
+```
+/api/v1/<resource>
+```
+
+Examples:
+
+- `/auth`
+- `/employees`
+- `/doctors`
+- `/call-reports`
+- `/expenses`
+- `/salary`
+- `/analytics`
+- `/notifications`
 
 ---
 
 ## 🧪 Development
 
-### Available Scripts
+### Scripts
 
 | Command | Description |
-|---|---|
-| `npm run dev` | Start backend + frontend concurrently |
-| `npm start` | Start backend only (production) |
-| `npm run install-all` | Install deps for both backend & frontend |
-| `cd frontend && npm run build` | Build frontend for production |
-| `cd frontend && npm run lint` | Run ESLint on frontend |
+|--------|------------|
+| npm run dev | Run full stack |
+| npm start | Backend only |
+| npm run install-all | Install dependencies |
+| npm run build | Build frontend |
+| npm run lint | Lint frontend |
 
-### Backend Module Convention
+---
 
-Each backend module follows a consistent structure:
+### Backend Module Structure
 
-```
+```bash
 modules/<name>/
-├── <name>.model.js       # Mongoose schema & model
-├── <name>.controller.js  # Request handlers
-└── <name>.routes.js      # Express router
+├── model.js
+├── controller.js
+└── routes.js
 ```
 
 ---
 
-## 🔧 Configuration
+## ⚙️ Configuration (Business Rules)
 
-### Business Rules (via `.env`)
-
-| Variable | Description | Default |
-|---|---|---|
-| `TA_RATE_PER_KM` | Travel allowance rate per kilometer | `2.5` |
-| `ATTENDANCE_DISTANCE_THRESHOLD_METERS` | Geofence radius for attendance | `100` |
-| `HQ_ALLOWANCE_PER_DAY` | Daily allowance at HQ station | `150` |
-| `X_STATION_LIMIT_KM` | Distance threshold for ex-station | `50` |
-| `X_STATION_ALLOWANCE_PER_DAY` | Daily allowance for ex-station | `250` |
-| `OFF_STATION_LIMIT_KM` | Distance threshold for off-station | `100` |
-| `OFF_STATION_ALLOWANCE_PER_DAY` | Daily allowance for off-station | `300` |
+| Variable | Description |
+|----------|------------|
+| TA_RATE_PER_KM | Travel allowance rate |
+| HQ_ALLOWANCE_PER_DAY | HQ allowance |
+| X_STATION_LIMIT_KM | Distance threshold |
+| OFF_STATION_ALLOWANCE_PER_DAY | Travel allowance |
 
 ---
 
@@ -343,9 +316,6 @@ This project is licensed under the **ISC License**.
 
 ---
 
-<div align="center">
+## ❤️ Final Note
 
-**Built with ❤️ for field force management**
-
-</div>
-]]>
+Built with ❤️ for scalable **field force management systems**.
