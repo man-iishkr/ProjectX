@@ -13,7 +13,5 @@ export const getMe = async () => {
 };
 
 export const logoutUser = async () => {
-    // Clear cookie manually if needed or call logout endpoint
-    // Implementation depends on backend logout. 
-    // For now just client side clear state.
+    await api.post('/auth/logout');
 };

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getMe, loginUser } from '../api/auth.api';
+import { getMe, loginUser, logoutUser } from '../api/auth.api';
 
 interface AuthContextType {
     user: any;
@@ -39,9 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await logoutUser(); // Clear httpOnly cookie on the server
+        } catch (err) {
+            // Even if the API call fails, still clear local state
+        }
         setUser(null);
-        // document.cookie = ... to clear if needed
         window.location.href = '/login';
     };
 
