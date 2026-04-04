@@ -17,7 +17,13 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc) and any origin
+        callback(null, origin || true);
+    },
+    credentials: true // Allow cookies to be sent cross-origin
+}));
 app.use(helmet());
 
 // Rate Limiting

@@ -97,8 +97,8 @@ const sendTokenResponse = (user, statusCode, res) => {
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        secure: true,          // Required for sameSite:'none' and HTTPS on Render
+        sameSite: 'none'       // Required for cross-origin cookie (frontend ≠ backend domain)
     };
 
     res
