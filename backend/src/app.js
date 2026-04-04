@@ -69,6 +69,21 @@ app.use('/api/v1/tour-programs', require('./modules/tourProgram/tourProgram.rout
 
 // ... other routes
 
+const path = require('path');
+const fs = require('fs');
+
+// Check if a compiled Frontend 'public' directory exists alongside the server bundle
+const frontendPath = path.join(__dirname, 'public');
+if (fs.existsSync(frontendPath)) {
+    // Serve static files from the React build
+    app.use(express.static(frontendPath));
+
+    // Explicitly exclude API routes from Catch-All
+    app.get(/^(?!\/api).+/, (req, res) => {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+    });
+}
+
 // Error Handler
 app.use(errorHandler);
 

@@ -71,7 +71,9 @@ const ProductList: React.FC = () => {
         try {
             const payload = {
                 ...formData,
-                unitPrice: Number(formData.unitPrice)
+                mrp: Number(formData.mrp) || 0,
+                ptr: Number(formData.ptr) || 0,
+                pts: Number(formData.pts) || 0
             };
 
             if (isEditing && currentId) {
