@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -26,12 +26,14 @@ const items = [
 ];
 
 const EmployeeLayout: React.FC = () => {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-background">
-            <Sidebar items={items} />
-            <div className="pl-64 flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1 p-6 overflow-x-hidden">
+            <Sidebar items={items} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <div className="md:pl-64 flex flex-col min-h-screen transition-all duration-300">
+                <Header onMenuClick={() => setIsSidebarOpen(true)} />
+                <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
                     <div className="max-w-7xl mx-auto space-y-6">
                         <Outlet />
                     </div>

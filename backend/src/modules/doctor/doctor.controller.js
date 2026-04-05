@@ -187,10 +187,7 @@ exports.updateDoctor = async (req, res, next) => {
             return res.status(404).json({ success: false, error: 'Doctor not found' });
         }
 
-        // Employee cannot edit doctor location or details (PRD: "Cannot edit doctor location")
-        if (req.user.role === 'employee') {
-            return res.status(403).json({ success: false, error: 'Employees cannot edit doctors' });
-        }
+        // Employee edit allowed as per user request
 
         if (req.user.role === 'hq' && doctor.hq.toString() !== req.user.hq.toString()) {
             return res.status(403).json({ success: false, error: 'Not authorized' });

@@ -52,9 +52,9 @@ const ManagerLayout: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-background">
             <Sidebar items={items} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-            <div className="pl-64 flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1 p-6 overflow-x-hidden">
+            <div className="md:pl-64 flex flex-col min-h-screen transition-all duration-300">
+                <Header onMenuClick={() => setIsSidebarOpen(true)} />
+                <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
                     <div className="max-w-7xl mx-auto space-y-6">
                         <Outlet />
                     </div>

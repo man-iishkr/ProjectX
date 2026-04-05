@@ -137,15 +137,13 @@ const DoctorList: React.FC<DoctorListProps> = ({ hideAddButton = false, title = 
                 </button>
             )}
 
-            {/* Admin/HQ can always edit. Employees can ONLY edit if they created it AND it is Pending */}
-            {(user?.role === 'admin' || user?.role === 'hq' || (row.approvalStatus === 'Pending' && row.createdBy?._id === user?.id)) && (
-                <button
-                    onClick={() => handleEdit(row)}
-                    className="text-blue-600 hover:text-blue-900"
-                >
-                    Edit
-                </button>
-            )}
+            {/* All users can edit doctors as requested */}
+            <button
+                onClick={() => handleEdit(row)}
+                className="text-blue-600 hover:text-blue-900"
+            >
+                Edit
+            </button>
 
             {user?.role === 'admin' && (
                 <button

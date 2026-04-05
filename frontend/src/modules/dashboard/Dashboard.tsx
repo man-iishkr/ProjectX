@@ -193,8 +193,7 @@ const Dashboard: React.FC = () => {
             {/* Middle Row: Charts */}
             {!isEmployee && (
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    {/* HQ Performance (Span 3) */}
-                    <Card className="col-span-3">
+                    <Card className="lg:col-span-3">
                         <CardHeader>
                             <CardTitle>Headquarters Performance</CardTitle>
                             <CardDescription>Average employee performance score by HQ</CardDescription>
@@ -217,8 +216,7 @@ const Dashboard: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    {/* HQ Distribution (Span 2) */}
-                    <Card className="col-span-2">
+                    <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>Staff Distribution</CardTitle>
                             <CardDescription>Employees per HQ</CardDescription>

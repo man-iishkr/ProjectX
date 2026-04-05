@@ -27,7 +27,7 @@ router
 router
     .route('/:id')
     .get(getDoctor)
-    .put(authorize('admin', 'sm', 'rsm', 'asm'), updateDoctor)
+    .put(authorize('admin', 'hq', 'sm', 'rsm', 'asm', 'bde'), updateDoctor)
     .delete(authorize('admin', 'sm', 'rsm', 'asm'), deleteDoctor);
 
 router
